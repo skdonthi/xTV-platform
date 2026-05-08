@@ -1,0 +1,7 @@
+{
+  "name": "layout",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/layout/src",
+  "tags": ["scope:platform", "type:layout"]
+}

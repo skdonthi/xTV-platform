@@ -1,0 +1,7 @@
+{
+  "name": "websocket",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/websocket/src",
+  "tags": ["scope:platform", "type:realtime"]
+}

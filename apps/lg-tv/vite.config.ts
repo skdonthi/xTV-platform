@@ -1,0 +1,23 @@
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+import { createXtvAliases } from "../../tools/vite/xtv-aliases";
+
+const root = dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = resolve(root, "../..");
+
+export default defineConfig({
+  root,
+  cacheDir: "../../node_modules/.vite/apps/lg-tv",
+  resolve: {
+    alias: createXtvAliases(workspaceRoot),
+  },
+  build: {
+    outDir: resolve(root, "../../dist/apps/lg-tv"),
+    emptyOutDir: true,
+  },
+  server: {
+    host: "0.0.0.0",
+    port: 4302,
+  },
+});

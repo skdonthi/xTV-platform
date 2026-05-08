@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@x-tv/core": ["libs/core/src/index.ts"],
+      "@x-tv/layout": ["libs/layout/src/index.ts"],
+      "@x-tv/widget-registry": ["libs/widget-registry/src/index.ts"],
+      "@x-tv/navigation": ["libs/navigation/src/index.ts"],
+      "@x-tv/websocket": ["libs/websocket/src/index.ts"],
+      "@x-tv/player": ["libs/player/src/index.ts"],
+      "@x-tv/i18n": ["libs/i18n/src/index.ts"],
+      "@x-tv/integrations/liferay-api": ["libs/integrations/liferay-api/src/index.ts"],
+      "@x-tv/integrations/remote-control-api": [
+        "libs/integrations/remote-control-api/src/index.ts"
+      ],
+      "@x-tv/integrations/xmm-api": ["libs/integrations/xmm-api/src/index.ts"],
+      "@x-tv/widgets": ["libs/widgets/src/index.ts"],
+      "@x-tv/service-gateway": ["libs/service-gateway/src/index.ts"],
+      "@x-tv/runtime-config": ["libs/runtime-config/src/index.ts"],
+      "@x-tv/feature-flags": ["libs/feature-flags/src/index.ts"],
+      "@x-tv/themes": ["libs/themes/src/index.ts"]
+    }
+  },
+  "include": ["apps/**/*.ts", "libs/**/*.ts", "tools/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

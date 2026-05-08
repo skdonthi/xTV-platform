@@ -1,0 +1,20 @@
+{
+  "id": "demo-hotel-home",
+  "version": 1,
+  "root": {
+    "id": "home-screen",
+    "type": "screen",
+    "children": [
+      {
+        "id": "hero",
+        "type": "widget",
+        "widget": "hero-banner",
+        "props": {
+          "title": "Welcome to xTV",
+          "subtitle": "A configurable Smart TV runtime for hospitality, IPTV and OTT.",
+          "image": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"
+        }
+      }
+    ]
+  }
+}

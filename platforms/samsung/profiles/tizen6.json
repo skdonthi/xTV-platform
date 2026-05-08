@@ -1,0 +1,11 @@
+{
+  "id": "tizen6",
+  "platform": "samsung",
+  "capabilities": {
+    "nativePlayer": "avplay",
+    "widevine": true,
+    "playReady": true,
+    "maxTextureSize": 4096,
+    "websocket": true
+  }
+}

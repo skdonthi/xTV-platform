@@ -1,0 +1,11 @@
+{
+  "id": "android-tv-12",
+  "platform": "android",
+  "capabilities": {
+    "nativePlayer": "exoplayer",
+    "widevine": true,
+    "playReady": false,
+    "maxTextureSize": 8192,
+    "websocket": true
+  }
+}

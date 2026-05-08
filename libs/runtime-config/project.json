@@ -1,0 +1,7 @@
+{
+  "name": "runtime-config",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/runtime-config/src",
+  "tags": ["scope:platform", "type:config"]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "android",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/android-tv/src",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/executors/build-tv.mjs --app=android --serve",
+        "forwardAllArgs": true
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/executors/build-tv.mjs --app=android",
+        "forwardAllArgs": true
+      }
+    }
+  },
+  "tags": ["scope:app", "platform:android"]
+}

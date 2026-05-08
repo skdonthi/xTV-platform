@@ -1,0 +1,11 @@
+{
+  "customer": "demo-hotel",
+  "locale": "en",
+  "theme": "demo-hotel-dark",
+  "features": {
+    "remoteLayouts": true,
+    "websocketEvents": true,
+    "roomMessaging": true,
+    "nativePlayback": true
+  }
+}

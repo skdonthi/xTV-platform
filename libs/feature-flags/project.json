@@ -1,0 +1,7 @@
+{
+  "name": "feature-flags",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/feature-flags/src",
+  "tags": ["scope:platform", "type:flags"]
+}

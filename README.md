@@ -1,514 +1,137 @@
 # xTV-platform
 
-> A next-generation multi-platform hospitality, IPTV, OTT and infotainment platform built for Smart TVs using LightningJS, TypeScript and a scalable white-label architecture.
+`xTV-platform` is a configurable Smart TV runtime platform for hospitality, IPTV and OTT use cases. It is an Nx monorepo built around TypeScript, LightningJS, Vite, Zustand, i18next and platform-specific packaging for Samsung Tizen, LG webOS and Android TV.
 
----
+This is not structured like a traditional web app. Apps are packaging and bootstrap shells. Product behavior, widgets, layouts, platform abstractions and business rules live in reusable libraries and customer configuration.
 
-# Vision
-
-`xTV-platform` is designed to power the next generation of:
-
-* Hospitality TV systems
-* IPTV platforms
-* OTT applications
-* Cruise entertainment systems
-* Airline infotainment portals
-* Smart TV ecosystems
-* Enterprise media platforms
-* Interactive TV experiences
-
-Unlike traditional browser-based IPTV applications, `xTV-platform` is engineered specifically for TV hardware constraints, remote-control UX, high-performance rendering and large-scale white-label deployments.
-
-The platform focuses on:
-
-* Native-like TV experiences
-* GPU-accelerated rendering
-* Real-time communication
-* High-performance navigation
-* Multi-platform packaging
-* Modular architecture
-* Enterprise scalability
-* Customer-specific customization
-
----
-
-# Why xTV-platform?
-
-Traditional Smart TV applications often suffer from:
-
-* Heavy DOM rendering
-* Slow navigation
-* Poor low-end TV performance
-* Memory pressure
-* Weak remote-control UX
-* Fragmented platform support
-* Difficult white-label customization
-
-`xTV-platform` solves these problems by using:
-
-* LightningJS rendering engine
-* GPU-accelerated UI
-* Platform abstraction layers
-* Native TV video integrations
-* Modular service adapters
-* Feature-driven architecture
-* Customer configuration layers
-
----
-
-# Supported Platforms
-
-| Platform               | Status    |
-| ---------------------- | --------- |
-| Samsung Tizen TV       | Supported |
-| LG webOS TV            | Supported |
-| Android TV             | Supported |
-| Google TV              | Supported |
-| Operator Set-Top Boxes | Supported |
-| Hospitality TVs        | Supported |
-
----
-
-# Core Features
-
-## TV-Optimized User Experience
-
-* Remote-first navigation
-* Spatial focus management
-* Smooth animations
-* GPU-accelerated rendering
-* Fast screen transitions
-* Large-scale EPG support
-* High-performance UI rendering
-
----
-
-## Multi-Platform Packaging
-
-Single codebase producing:
-
-* Samsung `.wgt`
-* LG `.ipk`
-* Android `.apk`
-
----
-
-## White-Label Architecture
-
-Customer-specific customization:
-
-* Branding
-* Themes
-* Feature flags
-* Layouts
-* API endpoints
-* Localization
-* Content modules
-
----
-
-## Real-Time Event System
-
-* WebSocket event bus
-* Push notifications
-* Live updates
-* Real-time messaging
-* Dynamic content refresh
-* Live schedule synchronization
-
----
-
-## Video & Media Platform
-
-* Video-on-demand
-* Live streaming
-* Native playback adapters
-* Hardware-accelerated playback
-* Subtitle support
-* Multi-audio support
-* Adaptive streaming
-
----
-
-## Enterprise Integrations
-
-* Multiple backend APIs
-* CMS integrations
-* Liferay integration
-* Authentication providers
-* Analytics systems
-* Notification systems
-
----
-
-## Internationalization
-
-* Multi-language support
-* Runtime language switching
-* RTL support ready
-* Localized schedules
-* Regional formatting
-* Subtitle localization
-
----
-
-# Technology Stack
-
-| Layer                   | Technology     |
-| ----------------------- | -------------- |
-| Rendering Engine        | LightningJS    |
-| UI Framework            | Lightning UI   |
-| Core Runtime            | Lightning Core |
-| Language                | TypeScript     |
-| Monorepo                | Nx             |
-| Build Tool              | Vite           |
-| State Management        | Zustand        |
-| Real-Time Communication | WebSocket      |
-| Internationalization    | i18next        |
-| Testing                 | Vitest         |
-| CI/CD                   | GitHub Actions |
-| Future Enterprise CI/CD | GitLab CI/CD   |
-
----
-
-# Architecture
-
-## High-Level Architecture
+## Workspace
 
 ```txt
-TV Application Platform
-│
-├── UI Layer
-├── Navigation Layer
-├── Playback Layer
-├── Real-Time Layer
-├── Internationalization Layer
-├── Customer Branding Layer
-│
-└── Service Gateway Layer
-      ├── API Service A
-      ├── API Service B
-      ├── API Service C
-      ├── Liferay CMS
-      └── WebSocket Gateway
+apps/
+  samsung-tv/          Thin Samsung/Tizen bootstrap and packaging entrypoint
+  lg-tv/               Thin LG/webOS bootstrap and packaging entrypoint
+  android-tv/          Thin Android TV bootstrap and packaging entrypoint
+libs/
+  core/                Platform composition and lifecycle
+  layout/              Server-driven layout schema and renderer
+  widget-registry/     Widget registration and lookup
+  navigation/          TV remote/focus navigation engine
+  websocket/           Realtime event bus
+  player/              Playback adapter contracts
+  i18n/                i18next initialization
+  integrations/        Backend API adapters such as XMM, Liferay and remote control
+  service-gateway/     Platform-facing service facade over backend sources
+  widgets/             LightningJS UI components and widget definitions
+  runtime-config/      Customer, profile, feature and layout loading
+  feature-flags/       Runtime flag helpers
+  themes/              Theme token contracts
+customers/
+  demo-hotel/          Example white-label customer config, layouts and locale files
+platforms/
+  samsung/             Samsung platform profiles and future packaging assets
+  lg/                  LG platform profiles and future packaging assets
+  android/             Android platform profiles and future packaging assets
+docs/                  Architecture notes
+tools/                 Workspace executors and release/build tooling
 ```
 
----
+## Where Code Belongs
 
-# Monorepo Structure
+Actual source code should be written in `libs/`. Apps must stay thin and only call `bootstrapTvPlatform`.
 
-```txt
-xTV-platform/
-│
-├── apps/
-│   ├── samsung-tv/
-│   ├── lg-tv/
-│   └── android-tv/
-│
-├── libs/
-│   ├── ui/
-│   ├── navigation/
-│   ├── player/
-│   ├── websocket/
-│   ├── notifications/
-│   ├── i18n/
-│   ├── auth/
-│   ├── analytics/
-│   ├── schedules/
-│   ├── content/
-│   └── customer-config/
-│
-├── services/
-│   ├── api-a/
-│   ├── api-b/
-│   ├── api-c/
-│   ├── liferay/
-│   └── websocket-gateway/
-│
-├── platforms/
-│   ├── samsung/
-│   ├── lg/
-│   └── android/
-│
-├── customers/
-│   ├── hotel-a/
-│   ├── cruise-a/
-│   └── hospital-a/
-│
-├── tooling/
-│
-└── .github/
-    └── workflows/
-```
+Widgets live in `libs/widgets`. Widget registration lives in `libs/widget-registry`. Layout schemas and rendering live in `libs/layout`. Customer-owned layout JSON lives in `customers/<customer>/layouts`.
 
----
+Customer configs live in `customers/<customer>/config`, with locale resources in `customers/<customer>/i18n` and theme selection in runtime config. Platform-specific profiles live in `platforms/<platform>/profiles`. Future native packaging assets such as Tizen manifests, webOS appinfo, Android manifests and signing config should also live under `platforms/`.
 
-# Platform Abstraction
+LightningJS components belong in `libs/widgets` or lower-level UI libraries added under `libs/`. The demo includes a DOM preview adapter in `libs/widgets/src/components/hero-banner.ts` and a LightningJS component example in `libs/widgets/src/components/hero-banner.lightning.ts`. Business logic belongs in domain libraries under `libs/`, never in `apps/`.
 
-`xTV-platform` isolates platform-specific APIs behind adapters.
+Backend API adapters live in `libs/integrations/*`. They contain low-level transport, auth headers, DTOs and backend-specific response handling. Shared product behavior should consume `@x-tv/service-gateway`, not the adapters directly.
 
-Example:
+## Composition
+
+One TV app is composed as:
+
+1. The app entrypoint identifies the target OS family and default profile.
+2. `@x-tv/core` creates the runtime.
+3. `@x-tv/runtime-config` resolves customer config, platform profile, feature flags, layout and runtime capabilities.
+4. `@x-tv/service-gateway` selects configured backend sources for layout, content and remote-control services.
+5. `@x-tv/widget-registry` exposes available widgets.
+6. `@x-tv/layout` renders the customer layout using registered widgets.
+7. `@x-tv/navigation` attaches remote-control navigation/focus behavior.
+
+Samsung bootstraps from `apps/samsung-tv/src/main.ts`:
 
 ```ts
-interface PlaybackEngine {
-  play(stream: string): void;
-  pause(): void;
-  stop(): void;
-}
+import { bootstrapTvPlatform } from "@x-tv/core";
+
+void bootstrapTvPlatform({
+  appId: "samsung-tv",
+  platformId: "samsung",
+  defaultProfile: "tizen6"
+});
 ```
 
-Implementations:
+## Commands
 
-* SamsungPlaybackEngine
-* LGPlaybackEngine
-* AndroidPlaybackEngine
+```sh
+npm install
+npm run dev:samsung
+npm run build:samsung
+nx build samsung --customer=AIDA --profile=tizen6
+nx build lg --customer=demo-hotel --profile=webos6
+nx build android --customer=demo-hotel --profile=android-tv-12
+```
 
-This architecture allows:
+`--customer` selects a white-label configuration. `--profile` selects an OS/device capability profile.
 
-* maintainability
-* scalability
-* platform independence
-* simplified testing
+## Import Patterns
 
----
+Use package-style aliases for shared platform code:
 
-# Backend Integration Strategy
+```ts
+import { bootstrapTvPlatform } from "@x-tv/core";
+import { createLayoutRenderer } from "@x-tv/layout";
+import { createDefaultWidgetRegistry } from "@x-tv/widget-registry";
+```
 
-The platform supports multiple backend systems simultaneously.
+Avoid deep imports across library internals. Export public contracts from each library `src/index.ts`.
 
-## Supported Integrations
+Backend integrations use explicit package aliases:
 
-* REST APIs
-* GraphQL APIs
-* WebSocket gateways
-* Liferay CMS
-* Authentication systems
-* Notification systems
+```ts
+import { createXmmApiClient } from "@x-tv/integrations/xmm-api";
+import { createLiferayApiClient } from "@x-tv/integrations/liferay-api";
+import { createRemoteControlApiClient } from "@x-tv/integrations/remote-control-api";
+import { createServiceGateway } from "@x-tv/service-gateway";
+```
 
-All integrations are normalized through service adapters to avoid direct UI coupling.
+## Dependency Boundaries
 
----
+Apps may depend on `@x-tv/core` only.
 
-# Build & Packaging Pipeline
+`core` composes libraries but should not contain business logic. `layout` may depend on widget registry contracts. `widget-registry` may depend on widget definitions. Domain libraries should not import app code or platform packaging files.
 
-`xTV-platform` uses a multi-stage build pipeline.
+Customer JSON can be loaded by runtime-config locally today and remotely later. Platform profiles are data, not app logic.
 
-## Build Flow
+Adapters under `libs/integrations/*` may import only generic platform contracts and their own types. Widgets and apps must not import integration adapters. The service gateway turns backend-specific DTOs into stable platform data contracts.
+
+## Customer Customization Without Redeploy
+
+The demo currently imports `customers/demo-hotel/layouts/home.json` locally. The same `RuntimeConfigLoader` boundary is designed to swap in remote layout delivery later:
 
 ```txt
-Source Code
-    ↓
-LightningJS Build
-    ↓
-Customer Configuration Injection
-    ↓
-Platform Packaging
-    ↓
-Application Signing
-    ↓
-Artifact Generation
+CMS / layout service -> runtime-config -> layout renderer -> widget registry -> Lightning widgets
 ```
 
----
+Future customers can customize layouts, themes, feature flags and locale resources through backend-delivered JSON as long as the app already contains the required widget types. New widget implementations require a new app build; new widget arrangements and content do not.
 
-# Generated Artifacts
+## Scalability Notes
 
-| Platform      | Artifact |
-| ------------- | -------- |
-| Samsung Tizen | `.wgt`   |
-| LG webOS      | `.ipk`   |
-| Android TV    | `.apk`   |
+- Add customer folders using kebab-case, for example `customers/aida-cruises`.
+- Add widgets with stable type keys, for example `hero-banner`, `live-tv-rail`, `room-service-menu`.
+- Keep runtime profiles explicit, for example `tizen6`, `tizen7`, `webos6`, `android-tv-12`.
+- Introduce domain libraries under `libs/` as the platform grows, such as `content`, `analytics`, `commerce`, `guest-services` or `epg`.
+- Add backend adapters under `libs/integrations/<source>-api`, then expose them through `libs/service-gateway`.
+- Enforce module boundaries with Nx tags once domain libraries mature.
 
----
-
-# Example Build Commands
-
-## Samsung
-
-```bash
-npm run build:samsung --customer=hotel-a
-```
-
-## LG
-
-```bash
-npm run build:lg --customer=hotel-a
-```
-
-## Android TV
-
-```bash
-npm run build:android --customer=hotel-a
-```
-
----
-
-# CI/CD Strategy
-
-The platform supports self-service release workflows.
-
-## Supported Capabilities
-
-* Manual build triggers
-* Customer selection
-* Platform selection
-* Environment promotion
-* Artifact versioning
-* Rollback support
-* Signed release storage
-* QA-controlled deployments
-
----
-
-# Example Release Flow
-
-```txt
-Developer Push
-    ↓
-GitHub Actions Workflow
-    ↓
-Build & Package
-    ↓
-Generate Signed Artifacts
-    ↓
-Upload Release Assets
-    ↓
-QA Validation
-    ↓
-Production Promotion
-```
-
----
-
-# White-Label Configuration
-
-Every customer can define:
-
-```txt
-customers/
-  hotel-a/
-    branding.json
-    features.json
-    theme.ts
-    endpoints.json
-```
-
-Supported customization includes:
-
-* logos
-* themes
-* color systems
-* features
-* layouts
-* APIs
-* localization
-* modules
-
-without changing core platform code.
-
----
-
-# Performance Philosophy
-
-`xTV-platform` is engineered around TV hardware realities.
-
-## Optimization Targets
-
-| Metric              | Target                    |
-| ------------------- | ------------------------- |
-| Application Startup | < 3s                      |
-| Navigation Latency  | < 100ms                   |
-| Channel Switching   | < 1s                      |
-| Smooth Rendering    | 60fps                     |
-| Memory Efficiency   | Optimized for low-end TVs |
-
----
-
-# Why LightningJS?
-
-LightningJS is purpose-built for Smart TV platforms.
-
-Advantages include:
-
-* WebGL rendering
-* GPU acceleration
-* Low memory usage
-* TV-first navigation
-* Smooth animations
-* High-performance rendering
-* Better low-end device support
-
-Compared to traditional DOM-based TV applications, LightningJS delivers significantly improved UX and performance.
-
----
-
-# Future Roadmap
-
-Planned platform capabilities include:
-
-* DRM integrations
-* Offline caching
-* App store deployment automation
-* Cloud configuration management
-* Dynamic feature delivery
-* Analytics dashboards
-* Voice control integrations
-* Multi-room synchronization
-* AI-driven recommendations
-* Operator-grade EPG systems
-
----
-
-# Design Principles
-
-`xTV-platform` is built around the following principles:
-
-* TV-first architecture
-* Performance-first rendering
-* Feature modularity
-* Platform abstraction
-* White-label scalability
-* Enterprise readiness
-* Real-time responsiveness
-* Maintainable integrations
-
----
-
-# Development Philosophy
-
-The platform is designed as:
-
-* a reusable TV ecosystem
-* a scalable enterprise foundation
-* a long-term hospitality/IPTV platform
-* a multi-customer product framework
-
-not as a traditional web application.
-
----
-
-# License
-
-MIT License
-
----
-
-# Contributing
-
-Contributions, ideas and platform integrations are welcome.
-
-Future areas include:
-
-* additional TV platforms
-* playback integrations
-* analytics providers
-* CMS adapters
-* UI modules
-* accessibility enhancements
-* performance tooling
-
----
-
-# xTV-platform
-
-> Built for the next generation of Smart TV experiences.
+See [docs/architecture.md](/Users/shivakrishnadonthi/xcontrol-DEV/myApps/xTV-platform/docs/architecture.md) for the deeper foundation notes.
