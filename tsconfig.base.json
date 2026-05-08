@@ -16,6 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@x-tv/core": ["libs/core/src/index.ts"],
+      "@x-tv/diagnostics": ["libs/diagnostics/src/index.ts"],
       "@x-tv/layout": ["libs/layout/src/index.ts"],
       "@x-tv/widget-registry": ["libs/widget-registry/src/index.ts"],
       "@x-tv/navigation": ["libs/navigation/src/index.ts"],

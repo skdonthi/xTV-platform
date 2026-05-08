@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 export function createXtvAliases(workspaceRoot: string): Record<string, string> {
   return {
     "@x-tv/core": resolve(workspaceRoot, "libs/core/src/index.ts"),
+    "@x-tv/diagnostics": resolve(workspaceRoot, "libs/diagnostics/src/index.ts"),
     "@x-tv/layout": resolve(workspaceRoot, "libs/layout/src/index.ts"),
     "@x-tv/widget-registry": resolve(workspaceRoot, "libs/widget-registry/src/index.ts"),
     "@x-tv/navigation": resolve(workspaceRoot, "libs/navigation/src/index.ts"),

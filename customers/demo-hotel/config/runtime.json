@@ -7,5 +7,11 @@
     "websocketEvents": true,
     "roomMessaging": true,
     "nativePlayback": true
+  },
+  "diagnostics": {
+    "enabled": true,
+    "pin": "2580",
+    "pinTimeoutMs": 5000,
+    "developerShortcuts": true
   }
 }

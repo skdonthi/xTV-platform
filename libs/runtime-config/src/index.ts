@@ -18,6 +18,12 @@ export interface RuntimeConfig {
   locale: string;
   theme: string;
   features: Record<string, boolean>;
+  diagnostics: {
+    enabled: boolean;
+    pin: string;
+    pinTimeoutMs: number;
+    developerShortcuts: boolean;
+  };
   layout: CustomerLayout;
   platform: PlatformProfile;
   services: ServiceGatewayConfig;

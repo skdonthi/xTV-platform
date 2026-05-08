@@ -5,8 +5,9 @@ const app = required(args.app, "app");
 const customer = args.customer ?? "demo-hotel";
 const profile = args.profile ?? defaultProfileFor(app);
 const command = args.serve ? "vite" : "vite";
+const devHost = process.env.XTV_DEV_HOST ?? "127.0.0.1";
 const viteArgs = args.serve
-  ? ["--config", `apps/${app}-tv/vite.config.ts`, "--host", "0.0.0.0"]
+  ? ["--config", `apps/${app}-tv/vite.config.ts`, "--host", devHost]
   : ["build", "--config", `apps/${app}-tv/vite.config.ts`];
 
 const result = spawnSync(command, viteArgs, {

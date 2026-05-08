@@ -84,6 +84,24 @@ nx build android --customer=demo-hotel --profile=android-tv-12
 
 `--customer` selects a white-label configuration. `--profile` selects an OS/device capability profile.
 
+For local browser preview, Samsung runs at [http://localhost:4301](http://localhost:4301). To expose the dev server on your LAN for a physical TV, run:
+
+```sh
+XTV_DEV_HOST=0.0.0.0 npm run dev:samsung -- --customer=AIDA --profile=tizen6
+```
+
+## TV Diagnostics
+
+The runtime mounts a diagnostics banner in the top-right corner. It shows platform, profile, customer, app id, MAC address when the TV runtime exposes it, model and build. Browsers do not expose real MAC addresses for privacy, so local preview shows `unavailable`; Samsung Tizen can use `webapis.network.getMac()`, LG can use `PalmSystem` metadata, and Android TV can provide values through a future native bridge at `globalThis.xtvAndroid`.
+
+There is no practical terminal on most production TV runtimes. For TV debugging, use the built-in diagnostics console:
+
+- Enter the diagnostics PIN on the remote numeric keypad. The demo customer PIN is `2580`.
+- Digits must be entered within the configured timeout, currently 5 seconds for the demo customer.
+- Browser/developer shortcuts still work when enabled: `F2`, `D`, `Info`, or Samsung red key `ColorF0Red`.
+- `console.log`, `console.info`, `console.warn`, and `console.error` are mirrored into the overlay.
+- Keep native tools available too: Samsung Remote Web Inspector, LG Web Inspector/ares tooling, Android `adb logcat`, and backend log correlation via `deviceId`.
+
 ## Import Patterns
 
 Use package-style aliases for shared platform code:

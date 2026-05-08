@@ -72,6 +72,36 @@ nx build samsung --customer=AIDA --profile=tizen6
 
 This builds the Samsung shell, loads the AIDA customer alias, and selects the Tizen 6 platform profile.
 
+## Diagnostics
+
+`libs/diagnostics` owns TV-friendly runtime diagnostics:
+
+- Best-effort device information collection.
+- Top-right demo banner with platform, profile, customer, MAC, model and build.
+- On-screen console overlay that mirrors browser console calls.
+- Remote-friendly PIN unlock for the console overlay.
+
+Browsers intentionally do not expose MAC addresses. Real device values must come from platform APIs:
+
+- Samsung Tizen: `webapis.productinfo` and `webapis.network`.
+- LG webOS: `PalmSystem` or a native/service bridge.
+- Android TV: a native bridge such as `globalThis.xtvAndroid`.
+
+Use the on-screen console for field debugging where a terminal is not available. Toggle it by entering the customer diagnostics PIN on the TV remote numeric keypad. Developer shortcuts such as `F2`, `D`, `Info`, and `ColorF0Red` can remain enabled for lab builds.
+
+The diagnostics PIN is customer configuration, not app logic:
+
+```json
+{
+  "diagnostics": {
+    "enabled": true,
+    "pin": "2580",
+    "pinTimeoutMs": 5000,
+    "developerShortcuts": true
+  }
+}
+```
+
 ## Remote Layout Delivery
 
 The local JSON loader is intentionally behind `createRuntimeConfigLoader`. Replace that implementation with a service-backed loader when the backend is ready:
