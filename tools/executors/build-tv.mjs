@@ -20,7 +20,30 @@ const result = spawnSync(command, viteArgs, {
   },
 });
 
-process.exit(result.status ?? 1);
+if (result.status !== 0) {
+  process.exit(result.status ?? 1);
+}
+
+if (!args.serve) {
+  const packageResult = spawnSync(
+    "node",
+    [
+      "tools/packaging/package-tv.mjs",
+      `--app=${app}`,
+      `--customer=${customer}`,
+      `--profile=${profile}`,
+      ...(args.version ? [`--version=${args.version}`] : []),
+    ],
+    {
+      cwd: process.cwd(),
+      stdio: "inherit",
+    },
+  );
+
+  process.exit(packageResult.status ?? 1);
+}
+
+process.exit(0);
 
 function parseArgs(rawArgs) {
   return rawArgs.reduce((parsed, arg) => {

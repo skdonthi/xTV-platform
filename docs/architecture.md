@@ -72,6 +72,25 @@ nx build samsung --customer=AIDA --profile=tizen6
 
 This builds the Samsung shell, loads the AIDA customer alias, and selects the Tizen 6 platform profile.
 
+## Platform Packaging
+
+The build process has two phases:
+
+```txt
+nx build samsung --customer=AIDA --profile=tizen6
+  -> Vite bundle: dist/apps/samsung-tv
+  -> Platform package stage: dist/platforms/samsung/AIDA/tizen6/stage
+  -> Platform artifacts: dist/platforms/samsung/AIDA/tizen6/artifacts
+```
+
+The packaging script is `tools/packaging/package-tv.mjs`.
+
+- Samsung packaging renders `config.xml`, copies the web bundle and creates a `.wgt` archive when `zip` is available.
+- LG packaging renders `appinfo.json`, copies the web bundle and invokes `ares-package` when LG CLI tools are installed.
+- Android packaging creates an Android TV WebView shell project with bundled web assets and invokes `gradle assembleRelease` when Android build tools are installed.
+
+The stage directory is intentionally kept as an inspectable output. TV packaging failures are often certificate, CLI or SDK problems; having the stage output makes those failures debuggable without rebuilding the shared runtime.
+
 ## Diagnostics
 
 `libs/diagnostics` owns TV-friendly runtime diagnostics:

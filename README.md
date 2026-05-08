@@ -82,7 +82,21 @@ nx build lg --customer=demo-hotel --profile=webos6
 nx build android --customer=demo-hotel --profile=android-tv-12
 ```
 
-`--customer` selects a white-label configuration. `--profile` selects an OS/device capability profile.
+`--customer` selects a white-label configuration. `--profile` selects an OS/device capability profile. Build output is written to `dist/apps/<platform>-tv` and packaged platform output is written to `dist/platforms/<platform>/<customer>/<profile>`.
+
+Platform package outputs:
+
+- Samsung: stages a Tizen web app and creates a `.wgt` when `zip` is available.
+- LG: stages a webOS app and creates an `.ipk` when LG CLI `ares-package` is installed.
+- Android TV: stages an Android TV WebView project and creates an `.apk` when Android SDK and `gradle` are installed.
+
+Package-only commands can be used after a web build:
+
+```sh
+npm run package:samsung -- --customer=AIDA --profile=tizen6
+npm run package:lg -- --customer=demo-hotel --profile=webos6
+npm run package:android -- --customer=demo-hotel --profile=android-tv-12
+```
 
 For local browser preview, Samsung runs at [http://localhost:4301](http://localhost:4301). To expose the dev server on your LAN for a physical TV, run:
 

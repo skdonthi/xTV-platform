@@ -1,0 +1,13 @@
+{
+  "id": "{{APP_ID}}",
+  "version": "{{VERSION}}",
+  "vendor": "xTV Platform",
+  "type": "web",
+  "main": "index.html",
+  "title": "{{DISPLAY_NAME}}",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "requiredPermissions": ["internet"],
+  "visible": true,
+  "uiRevision": 2
+}
