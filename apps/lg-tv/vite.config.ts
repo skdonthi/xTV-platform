@@ -8,6 +8,8 @@ const workspaceRoot = resolve(root, "../..");
 
 export default defineConfig({
   root,
+  // Relative base so bundle assets resolve under file:// (webOS package root).
+  base: "./",
   cacheDir: "../../node_modules/.vite/apps/lg-tv",
   resolve: {
     alias: createXtvAliases(workspaceRoot),

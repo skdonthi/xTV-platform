@@ -8,6 +8,9 @@ const workspaceRoot = resolve(root, "../..");
 
 export default defineConfig({
   root,
+  // Relative base so bundle assets resolve under file:// (Tizen widget root).
+  // This is the LightningJS analog of CCL's XC_WEB_ROOT path-portability fix.
+  base: "./",
   cacheDir: "../../node_modules/.vite/apps/samsung-tv",
   resolve: {
     alias: createXtvAliases(workspaceRoot),

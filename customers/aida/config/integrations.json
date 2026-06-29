@@ -1,0 +1,18 @@
+{
+  "runtime": {
+    "customerId": "aida",
+    "layoutSource": "xmm",
+    "contentSource": "xmm"
+  },
+  "xmmApi": {
+    "baseUrl": "https://xmm.aida.example.invalid/api/",
+    "tenantId": "aida"
+  },
+  "remoteControlApi": {
+    "baseUrl": "https://rc.aida.example.invalid/api/",
+    "deviceId": "aida-cabin"
+  },
+  "websocket": {
+    "url": "wss://events.aida.example.invalid/ws"
+  }
+}

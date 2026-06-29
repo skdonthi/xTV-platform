@@ -1,0 +1,22 @@
+{
+  "runtime": {
+    "customerId": "ccl",
+    "layoutSource": "liferay",
+    "contentSource": "liferay"
+  },
+  "liferayApi": {
+    "baseUrl": "https://portal.ccl.example.invalid/",
+    "siteId": "ccl"
+  },
+  "remoteControlApi": {
+    "baseUrl": "https://rc.ccl.example.invalid/api/",
+    "deviceId": "ccl-cabin"
+  },
+  "websocket": {
+    "url": "wss://events.ccl.example.invalid/ws"
+  },
+  "mutingService": {
+    "url": "wss://mute.ccl.example.invalid/ws",
+    "channel": "cabin-audio"
+  }
+}

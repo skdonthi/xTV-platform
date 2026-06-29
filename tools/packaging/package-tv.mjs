@@ -3,18 +3,39 @@ import { existsSync, readFileSync } from "node:fs";
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveSigning, warnUnsigned } from "./signing.mjs";
+
+// Mirror of runtime-config aliases so the build folder and the bundled config agree.
+const customerAliases = {
+  AIDA: "aida",
+  CCL: "ccl",
+  CARNIVAL: "ccl",
+  DEMO_HOTEL: "demo-hotel",
+};
 
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = parseArgs(process.argv.slice(2));
 const app = required(args.app, "app");
-const customer = args.customer ?? "demo-hotel";
+const customer = resolveCustomerSlug(args.customer ?? "demo-hotel");
 const profile = args.profile ?? defaultProfileFor(app);
 const version = args.version ?? readPackageVersion();
-const appMeta = createAppMeta({ app, customer, profile, version });
+const ssspVer = args.sssp ?? "1.00";
+const identity = readTenantIdentity(customer);
+const appMeta = createAppMeta({ app, customer, profile, version, identity });
 const webBundleDir = resolve(workspaceRoot, "dist/apps", `${app}-tv`);
 const platformOutDir = resolve(workspaceRoot, "dist/platforms", app, customer, profile);
 const stageDir = join(platformOutDir, "stage");
 const artifactsDir = join(platformOutDir, "artifacts");
+
+// Partner-only privileges (live-TV avplay + B2B). Require a Samsung PARTNER cert;
+// rejected by public certs. Emitted only when the tenant opts in via app-identity.
+const SAMSUNG_PARTNER_PRIVILEGES = [
+  '  <tizen:privilege name="http://developer.samsung.com/privilege/avplay" />',
+  '  <tizen:privilege name="http://developer.samsung.com/privilege/drmplay" />',
+  '  <tizen:privilege name="http://developer.samsung.com/privilege/productinfo" />',
+  '  <tizen:privilege name="http://developer.samsung.com/privilege/tvinfo" />',
+  '  <tizen:privilege name="http://developer.samsung.com/privilege/network.public" />',
+].join("\n");
 
 await ensureWebBundle(webBundleDir, app);
 await rm(platformOutDir, { recursive: true, force: true });
@@ -22,50 +43,97 @@ await mkdir(stageDir, { recursive: true });
 await mkdir(artifactsDir, { recursive: true });
 
 if (app === "samsung") {
-  await packageSamsung({ webBundleDir, stageDir, artifactsDir, appMeta });
+  await packageSamsung({ stageDir, artifactsDir, appMeta });
 } else if (app === "lg") {
-  await packageLg({ webBundleDir, stageDir, artifactsDir, appMeta });
+  await packageLg({ stageDir, artifactsDir, appMeta });
 } else if (app === "android") {
-  await packageAndroid({ webBundleDir, stageDir, artifactsDir, appMeta });
+  await packageAndroid({ stageDir, artifactsDir, appMeta });
 } else {
   throw new Error(`Unsupported TV app "${app}".`);
 }
 
 await writeBuildManifest({ appMeta, platformOutDir, stageDir, artifactsDir });
-console.log(`Packaged ${app} output at ${relative(workspaceRoot, platformOutDir)}`);
+console.log(`Packaged ${app} (${customer}) at ${relative(workspaceRoot, platformOutDir)}`);
 
-async function packageSamsung({ webBundleDir, stageDir, artifactsDir, appMeta }) {
+async function packageSamsung({ stageDir, artifactsDir, appMeta }) {
+  // Web bundle is already FLAT (index.html + assets/ at root) — copy as-is.
   await cp(webBundleDir, stageDir, { recursive: true });
   await renderTemplate("platforms/samsung/templates/config.xml", join(stageDir, "config.xml"), {
     APP_ID: appMeta.appId,
     DISPLAY_NAME: appMeta.displayName,
-    TIZEN_APP_ID: "xTVPlatform.app",
-    TIZEN_PACKAGE_ID: "xTVPlatform",
-    TIZEN_VERSION: appMeta.profile.replace("tizen", ""),
+    TIZEN_APP_ID: appMeta.tizenAppId,
+    TIZEN_PACKAGE_ID: appMeta.tizenPackage,
+    TIZEN_VERSION: appMeta.tizenVersion,
     VERSION: appMeta.version,
+    PARTNER_PRIVILEGES: appMeta.samsungPartner ? SAMSUNG_PARTNER_PRIVILEGES : "",
   });
-  await writePlaceholderPng(join(stageDir, "icon.png"));
+  await copyIconOrPlaceholder(join(stageDir, "icon.png"), "icon.png");
 
-  const artifactPath = join(artifactsDir, `${appMeta.packageName}.wgt`);
-  if (hasCommand("zip")) {
-    execFileSync("zip", ["-qr", artifactPath, "."], { cwd: stageDir, stdio: "inherit" });
+  const signing = resolveSigning({ customer, platform: "samsung" });
+  const wgtPath = join(artifactsDir, `${appMeta.samsungBasename}.wgt`);
+
+  if (signing.available) {
+    const tizenBin = signing.tizenCli ? join(signing.tizenCli, "tizen") : "tizen";
+    // `tizen package` signs the widget with the Certificate Manager profile and
+    // zips the stage into <stage>/<name>.wgt.
+    execFileSync(tizenBin, ["package", "-t", "wgt", "-s", signing.profile, "--", stageDir], {
+      stdio: "inherit",
+    });
+    const produced = (await readdir(stageDir)).find((file) => file.endsWith(".wgt"));
+    if (!produced) {
+      throw new Error("tizen package produced no .wgt file.");
+    }
+    await cp(join(stageDir, produced), wgtPath);
+    await rm(join(stageDir, produced), { force: true });
   } else {
-    console.warn("zip command not found. Samsung stage output was created without .wgt archive.");
+    warnUnsigned(customer, "samsung");
+    if (hasCommand("zip")) {
+      execFileSync("zip", ["-qr", wgtPath, "."], { cwd: stageDir, stdio: "inherit" });
+    } else {
+      console.warn("zip command not found. Samsung stage created without .wgt archive.");
+    }
+  }
+
+  // SSSP / URL-Launcher deploy manifest: TV reads this, verifies <size>, then
+  // downloads the named .wgt. Bump <ver> to force a re-download.
+  if (existsSync(wgtPath)) {
+    const size = (await stat(wgtPath)).size;
+    await writeFile(
+      join(artifactsDir, "sssp_config.xml"),
+      [
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+        "<widget>",
+        `  <ver>${ssspVer}</ver>`,
+        `  <size>${size}</size>`,
+        `  <widgetname>${appMeta.samsungBasename}</widgetname>`,
+        "  <webtype>tizen</webtype>",
+        "</widget>",
+        "",
+      ].join("\n"),
+    );
   }
 }
 
-async function packageLg({ webBundleDir, stageDir, artifactsDir, appMeta }) {
+async function packageLg({ stageDir, artifactsDir, appMeta }) {
   await cp(webBundleDir, stageDir, { recursive: true });
   await renderTemplate("platforms/lg/templates/appinfo.json", join(stageDir, "appinfo.json"), {
-    APP_ID: appMeta.appId,
+    APP_ID: appMeta.lgAppId,
     DISPLAY_NAME: appMeta.displayName,
     VERSION: appMeta.version,
   });
-  await writePlaceholderPng(join(stageDir, "icon.png"));
-  await writePlaceholderPng(join(stageDir, "largeIcon.png"));
+  await copyIconOrPlaceholder(join(stageDir, "icon.png"), "icon.png");
+  await copyIconOrPlaceholder(join(stageDir, "largeIcon.png"), "largeIcon.png");
 
-  if (hasCommand("ares-package")) {
-    execFileSync("ares-package", [stageDir, "-o", artifactsDir], { stdio: "inherit" });
+  const signing = resolveSigning({ customer, platform: "lg" });
+  const aresBin = signing.aresCli ? join(signing.aresCli, "ares-package") : "ares-package";
+
+  if (hasCommand(aresBin)) {
+    execFileSync(aresBin, [stageDir, "-o", artifactsDir], { stdio: "inherit" });
+    // Pro:Centric .ipk signing (LG SI tooling) is applied here once signing.signKey
+    // is provisioned; until then the .ipk is built unsigned.
+    if (!signing.available) {
+      warnUnsigned(customer, "lg");
+    }
   } else {
     await writeFile(
       join(artifactsDir, "README.txt"),
@@ -76,11 +144,12 @@ async function packageLg({ webBundleDir, stageDir, artifactsDir, appMeta }) {
         "",
       ].join("\n"),
     );
-    console.warn("ares-package not found. LG stage output was created without .ipk archive.");
+    console.warn("ares-package not found. LG stage created without .ipk archive.");
+    warnUnsigned(customer, "lg");
   }
 }
 
-async function packageAndroid({ webBundleDir, stageDir, artifactsDir, appMeta }) {
+async function packageAndroid({ stageDir, artifactsDir, appMeta }) {
   await cp(resolve(workspaceRoot, "platforms/android/templates"), stageDir, { recursive: true });
   await cp(webBundleDir, join(stageDir, "app/src/main/assets"), { recursive: true });
   await renderTemplate(
@@ -105,19 +174,30 @@ async function packageAndroid({ webBundleDir, stageDir, artifactsDir, appMeta })
   await renderTemplate(
     "platforms/android/templates/app/src/main/AndroidManifest.xml",
     join(stageDir, "app/src/main/AndroidManifest.xml"),
-    {
-      DISPLAY_NAME: appMeta.displayName,
-    },
+    { DISPLAY_NAME: appMeta.displayName },
   );
 
+  const signing = resolveSigning({ customer, platform: "android" });
+  const gradleArgs = ["assembleRelease"];
+  if (signing.available) {
+    // Passed as Gradle properties; the build.gradle signingConfigs block reads them.
+    gradleArgs.push(
+      `-PXTV_KS_FILE=${signing.keystore}`,
+      `-PXTV_KS_PASS=${signing.keystorePass ?? ""}`,
+      `-PXTV_KEY_ALIAS=${signing.keyAlias ?? ""}`,
+      `-PXTV_KEY_PASS=${signing.keyPass ?? ""}`,
+    );
+  } else {
+    warnUnsigned(customer, "android");
+  }
+
   if (hasCommand("gradle")) {
-    const result = spawnSync("gradle", ["assembleRelease"], { cwd: stageDir, stdio: "inherit" });
+    const result = spawnSync("gradle", gradleArgs, { cwd: stageDir, stdio: "inherit" });
 
     if (result.status === 0) {
-      await cp(
-        join(stageDir, "app/build/outputs/apk/release/app-release-unsigned.apk"),
-        join(artifactsDir, `${appMeta.packageName}.apk`),
-      );
+      const releaseDir = join(stageDir, "app/build/outputs/apk/release");
+      const apkName = signing.available ? "app-release.apk" : "app-release-unsigned.apk";
+      await cp(join(releaseDir, apkName), join(artifactsDir, `${appMeta.packageName}.apk`));
     } else {
       throw new Error("Android Gradle package failed.");
     }
@@ -128,11 +208,13 @@ async function packageAndroid({ webBundleDir, stageDir, artifactsDir, appMeta })
         "Android TV project stage created.",
         "Install Android SDK and Gradle, then run:",
         `cd ${relative(workspaceRoot, stageDir)}`,
-        "gradle assembleRelease",
+        signing.available
+          ? `gradle assembleRelease ${gradleArgs.slice(1).join(" ")}`
+          : "gradle assembleRelease",
         "",
       ].join("\n"),
     );
-    console.warn("gradle not found. Android stage output was created without .apk archive.");
+    console.warn("gradle not found. Android stage created without .apk archive.");
   }
 }
 
@@ -197,20 +279,56 @@ async function writePlaceholderPng(path) {
   await writeFile(path, Buffer.from(onePixelPng, "base64"));
 }
 
-function createAppMeta({ app, customer, profile, version }) {
+// Prefer the cruiseline's brand icon (customers/<line>/assets/<name>) over the
+// 1px placeholder, so each tenant's package carries its own artwork.
+async function copyIconOrPlaceholder(destPath, name) {
+  const branded = resolve(workspaceRoot, "customers", customer, "assets", name);
+  if (existsSync(branded)) {
+    await cp(branded, destPath);
+    return;
+  }
+  await writePlaceholderPng(destPath);
+}
+
+function readTenantIdentity(customer) {
+  const path = resolve(workspaceRoot, "customers", customer, "config/app-identity.json");
+  if (!existsSync(path)) {
+    return {};
+  }
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    console.warn(`Could not parse app-identity.json for ${customer}: ${error.message}`);
+    return {};
+  }
+}
+
+function createAppMeta({ app, customer, profile, version, identity }) {
   const normalizedCustomer = customer.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
+  const compact = normalizedCustomer.replaceAll("-", "");
   const normalizedProfile = profile.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
+  const samsung = identity.samsung ?? {};
+  const lg = identity.lg ?? {};
+  const android = identity.android ?? {};
+  const tizenVersion = profile.replace("tizen", "");
+  const brand = customer.toUpperCase().replaceAll(/[^A-Z0-9]+/g, "");
 
   return {
     app,
-    appId: `com.xtv.${normalizedCustomer}.${app}`,
-    androidApplicationId: `com.xtv.${normalizedCustomer.replaceAll("-", "")}.${app}`,
     customer,
-    displayName: `xTV ${customer}`,
-    packageName: `xtv-${normalizedCustomer}-${app}-${normalizedProfile}-${version}`,
     profile,
     version,
+    displayName: `xTV ${customer}`,
     versionCode: versionToCode(version),
+    appId: samsung.appId ?? lg.appId ?? `com.xtv.${normalizedCustomer}.${app}`,
+    tizenAppId: samsung.tizenAppId ?? `xTV${compact}.app`,
+    tizenPackage: samsung.package ?? `xTV${compact}`,
+    tizenVersion,
+    samsungPartner: Boolean(samsung.partner),
+    samsungBasename: `${brand}_T${tizenVersion}_${version.replaceAll(".", "_")}`,
+    lgAppId: lg.appId ?? `com.xtv.${compact}.webos`,
+    androidApplicationId: android.applicationId ?? `com.xtv.${compact}.${app}`,
+    packageName: `xtv-${normalizedCustomer}-${app}-${normalizedProfile}-${version}`,
   };
 }
 
@@ -227,6 +345,10 @@ function hasCommand(command) {
 function readPackageVersion() {
   const packageJson = JSON.parse(readFileSync(resolve(workspaceRoot, "package.json"), "utf8"));
   return packageJson.version;
+}
+
+function resolveCustomerSlug(input) {
+  return customerAliases[input] ?? input.toLowerCase();
 }
 
 function parseArgs(rawArgs) {

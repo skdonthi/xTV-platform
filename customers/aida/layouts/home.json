@@ -1,0 +1,20 @@
+{
+  "id": "aida-home",
+  "version": 1,
+  "root": {
+    "id": "home-screen",
+    "type": "screen",
+    "children": [
+      {
+        "id": "hero",
+        "type": "widget",
+        "widget": "hero-banner",
+        "props": {
+          "title": "Willkommen an Bord",
+          "subtitle": "Ihr Entertainment-Portal für die Reise.",
+          "image": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"
+        }
+      }
+    ]
+  }
+}
