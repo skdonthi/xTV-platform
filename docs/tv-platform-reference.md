@@ -35,6 +35,16 @@ Exterity `3`.
 | info | 457 | | forward / rewind / playPause | 417 / 412 / 10252 |
 | numbers 0–9 | 48–57 | | menu / smartHub / source | 10133 / 10071 / 10072 |
 
+**Samsung version strategy (Tizen 6.5 / 7 / 9 / 10):** profiles are capability
+tiers (`tizen6`=6.5, `tizen7`, `tizen9`, `tizen10`), each with an explicit
+`apiVersion`. That `apiVersion` becomes the widget's `required_version` — the
+**minimum** Tizen the `.wgt` installs on — and the artifact name (`CCL_T65…` →
+`CCL_T90…`). Keycodes are identical across these versions. For the **widest** fleet
+install, build the **lowest** profile you support (e.g. `tizen6` → runs 6.5→10);
+build a higher profile only when you deliberately require newer firmware (e.g. an
+AV1/HDR-only build). Higher `maxTextureSize` / `av1` / `hdr` caps let widgets
+feature-gate at runtime.
+
 ### LG webOS (`lgService.js`, HCAP)
 | Action | Code(s) | | Action | Code(s) |
 |---|---|---|---|---|

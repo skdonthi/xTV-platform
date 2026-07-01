@@ -10,7 +10,10 @@ import androidTv12 from "../../../platforms/android/profiles/android-tv-12.json"
 import webos3 from "../../../platforms/lg/profiles/webos3.json";
 import webos5 from "../../../platforms/lg/profiles/webos5.json";
 import webos6 from "../../../platforms/lg/profiles/webos6.json";
+import tizen10 from "../../../platforms/samsung/profiles/tizen10.json";
 import tizen6 from "../../../platforms/samsung/profiles/tizen6.json";
+import tizen7 from "../../../platforms/samsung/profiles/tizen7.json";
+import tizen9 from "../../../platforms/samsung/profiles/tizen9.json";
 
 export interface PlatformProfile {
   id: string;
@@ -60,6 +63,9 @@ const bundledLayout = tenantLayout as unknown as CustomerLayout;
 
 const platformProfiles: Record<string, PlatformProfile> = {
   tizen6,
+  tizen7,
+  tizen9,
+  tizen10,
   webos3,
   webos5,
   webos6,

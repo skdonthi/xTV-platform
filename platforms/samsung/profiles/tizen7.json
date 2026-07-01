@@ -1,12 +1,13 @@
 {
-  "id": "tizen6",
+  "id": "tizen7",
   "platform": "samsung",
   "capabilities": {
-    "apiVersion": "6.5",
+    "apiVersion": "7.0",
     "nativePlayer": "avplay",
     "widevine": true,
     "playReady": true,
-    "maxTextureSize": 4096,
+    "hdr": true,
+    "maxTextureSize": 8192,
     "websocket": true
   }
 }

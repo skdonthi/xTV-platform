@@ -303,7 +303,9 @@ function createAppMeta({ app, customer, profile, version, identity }) {
   const samsung = identity.samsung ?? {};
   const lg = identity.lg ?? {};
   const android = identity.android ?? {};
-  const tizenVersion = profile.replace("tizen", "");
+  // required_version is the MINIMUM Tizen the .wgt installs on — read the profile's
+  // explicit apiVersion (e.g. "6.5", "9.0"), not the profile-id number.
+  const tizenVersion = readTizenApiVersion(profile);
   const brand = customer.toUpperCase().replaceAll(/[^A-Z0-9]+/g, "");
 
   return {
@@ -318,11 +320,27 @@ function createAppMeta({ app, customer, profile, version, identity }) {
     tizenPackage: samsung.package ?? `xTV${compact}`,
     tizenVersion,
     samsungPartner: Boolean(samsung.partner),
-    samsungBasename: `${brand}_T${tizenVersion}_${version.replaceAll(".", "_")}`,
+    // e.g. apiVersion 6.5 -> T65, 10.0 -> T100
+    samsungBasename: `${brand}_T${tizenVersion.replaceAll(/\D/g, "")}_${version.replaceAll(".", "_")}`,
     lgAppId: lg.appId ?? `com.xtv.${compact}.webos`,
     androidApplicationId: android.applicationId ?? `com.xtv.${compact}.${app}`,
     packageName: `xtv-${normalizedCustomer}-${app}-${normalizedProfile}-${version}`,
   };
+}
+
+function readTizenApiVersion(profile) {
+  const path = resolve(workspaceRoot, "platforms/samsung/profiles", `${profile}.json`);
+  if (existsSync(path)) {
+    try {
+      const apiVersion = JSON.parse(readFileSync(path, "utf8"))?.capabilities?.apiVersion;
+      if (apiVersion) {
+        return String(apiVersion);
+      }
+    } catch (error) {
+      console.warn(`Could not read apiVersion for ${profile}: ${error.message}`);
+    }
+  }
+  return profile.replace("tizen", "");
 }
 
 function versionToCode(version) {
