@@ -68,6 +68,15 @@ native bridge as `"GoBack"` (see `platforms/android/.../MainActivity.kt`).
 | Samsung Tizen <6.5 | `tizen` | `webapis.avplay` | `b2bapis.b2bcontrol.getMACAddress()` | `b2bapis.b2bpower.getPowerState()` |
 | Samsung legacy (Maple) | `maple` | Samsung player plugin | `networkPlugin.GetMAC()` | `tvPlugin GetPowerState` |
 | LG webOS | `lge` | `hcap.Media` | `hcap.network.getNetworkDevice().mac` | `hcap.power.getPowerMode()` (0=off,1=normal,2=standby) |
+
+**LG version strategy (webOS 3.6 / 5 / 6):** two LG runtimes exist — **HCAP**
+(hospitality / Pro:Centric, firmware-injected `hcap`, not bundled) and
+**webOSTV.js** (consumer/Content-Store, luna wrapper, bundled, version-tolerant).
+We are HCAP-first. The LG audio adapter is capability-aware: use `hcap.setMute`
+when present, else fall back to luna (`webOS.service.request`, from webOSTV.js) for
+older firmware that lacks it, else a local flag. webOSTV.js is LG-proprietary —
+vendor it to `apps/lg-tv/webOSTV.js` and enable the tag in that app's `index.html`
+only if the luna fallback is actually needed. Profiles: `webos3`, `webos5`, `webos6`.
 | Exterity | `ekioh` | HTML5 `<video>` + `extplugin` | `extplugin.netinterfaces[0].hwaddr` | hardcoded normal |
 | Browser (dev) | fallback | HTML5 `<video>` | mock (`?macid=`) | hardcoded normal |
 

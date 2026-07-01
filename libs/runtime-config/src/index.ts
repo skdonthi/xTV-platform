@@ -7,6 +7,8 @@ import type { ServiceGatewayConfig } from "@x-tv/service-gateway";
 import tenantConfig from "@x-tv/tenant/config";
 import tenantLayout from "@x-tv/tenant/layout";
 import androidTv12 from "../../../platforms/android/profiles/android-tv-12.json";
+import webos3 from "../../../platforms/lg/profiles/webos3.json";
+import webos5 from "../../../platforms/lg/profiles/webos5.json";
 import webos6 from "../../../platforms/lg/profiles/webos6.json";
 import tizen6 from "../../../platforms/samsung/profiles/tizen6.json";
 
@@ -58,6 +60,8 @@ const bundledLayout = tenantLayout as unknown as CustomerLayout;
 
 const platformProfiles: Record<string, PlatformProfile> = {
   tizen6,
+  webos3,
+  webos5,
   webos6,
   "android-tv-12": androidTv12,
 };

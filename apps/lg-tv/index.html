@@ -1,2 +1,10 @@
+<!--
+  LG hospitality uses the firmware-injected `hcap` global (no bundled lib). For
+  older webOS (3.6 / 5) where HCAP lacks a capability, the audio adapter falls
+  back to luna via webOSTV.js. That file ships in the LG webOS TV SDK and is NOT
+  redistributable here — to enable the luna fallback, vendor it to
+  apps/lg-tv/webOSTV.js and uncomment the tag below (classic, before the bundle):
+  <script src="./webOSTV.js"></script>
+-->
 <div id="app"></div>
 <script type="module" src="/src/main.ts"></script>

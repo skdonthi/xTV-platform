@@ -10,9 +10,13 @@ export interface AudioController {
 // Narrow, guarded views of the platform globals (untyped at runtime on TVs).
 // We never assume the API exists — every adapter degrades to a safe local flag.
 type TizenAudio = { setMute(muted: boolean): void; getMute(): boolean };
-// LG hospitality exposes audio control on the firmware-injected `hcap` global —
-// no webOSTV.js / luna dependency (matches the legacy LG service).
+// LG hospitality exposes audio on the firmware-injected `hcap` global (no bundled
+// lib). `webOS.service` (from webOSTV.js) is the cross-version luna fallback used
+// when HCAP lacks the call on older firmware (webOS 3.6 / 5).
 type Hcap = { setMute(muted: boolean): void; getMute?(): boolean };
+type LunaService = {
+  request(uri: string, params: { method: string; parameters: Record<string, unknown> }): void;
+};
 type AndroidBridge = { setMuted(muted: boolean): void };
 
 function globalProp<T>(name: string): T | undefined {
@@ -35,15 +39,25 @@ function createTizenAudio(): AudioController {
   };
 }
 
-// LG webOS (Pro:Centric hospitality): firmware-injected `hcap` global. Method
-// name per HCAP docs — verify on-device. Falls back to a local flag off-device.
+// LG webOS: capability-aware. Prefer HCAP (Pro:Centric hospitality, all versions
+// that expose it); fall back to luna via webOSTV.js when HCAP lacks setMute on
+// older firmware (webOS 3.6 / 5); finally a local flag off-device. The muting
+// controller is unaware of any of this.
 function createWebosAudio(): AudioController {
   const hcap = globalProp<Hcap>("hcap");
+  const luna = globalProp<{ service?: LunaService }>("webOS")?.service;
   let muted = false;
   return {
     setMuted(next) {
       muted = next;
-      hcap?.setMute(next);
+      if (hcap?.setMute) {
+        hcap.setMute(next);
+      } else {
+        luna?.request("luna://com.webos.audio", {
+          method: "setMuted",
+          parameters: { muted: next },
+        });
+      }
     },
     isMuted() {
       return hcap?.getMute ? hcap.getMute() : muted;

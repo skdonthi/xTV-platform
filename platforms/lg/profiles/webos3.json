@@ -1,0 +1,11 @@
+{
+  "id": "webos3",
+  "platform": "lg",
+  "capabilities": {
+    "nativePlayer": "webos-media",
+    "widevine": true,
+    "playReady": false,
+    "maxTextureSize": 2048,
+    "websocket": true
+  }
+}
