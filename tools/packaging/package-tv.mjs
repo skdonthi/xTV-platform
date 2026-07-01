@@ -3,20 +3,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveCustomerSlug } from "./customer-slug.mjs";
 import { resolveSigning, warnUnsigned } from "./signing.mjs";
-
-// Mirror of runtime-config aliases so the build folder and the bundled config agree.
-const customerAliases = {
-  AIDA: "aida",
-  CCL: "ccl",
-  CARNIVAL: "ccl",
-  DEMO_HOTEL: "demo-hotel",
-};
 
 const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = parseArgs(process.argv.slice(2));
 const app = required(args.app, "app");
-const customer = resolveCustomerSlug(args.customer ?? "demo-hotel");
+const customer = resolveCustomerSlug(args.customer);
 const profile = args.profile ?? defaultProfileFor(app);
 const version = args.version ?? readPackageVersion();
 const ssspVer = args.sssp ?? "1.00";
@@ -345,10 +338,6 @@ function hasCommand(command) {
 function readPackageVersion() {
   const packageJson = JSON.parse(readFileSync(resolve(workspaceRoot, "package.json"), "utf8"));
   return packageJson.version;
-}
-
-function resolveCustomerSlug(input) {
-  return customerAliases[input] ?? input.toLowerCase();
 }
 
 function parseArgs(rawArgs) {

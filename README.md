@@ -1,169 +1,114 @@
 # xTV-platform
 
-`xTV-platform` is a configurable Smart TV runtime platform for hospitality, IPTV and OTT use cases. It is an Nx monorepo built around TypeScript, LightningJS, Vite, Zustand, i18next and platform-specific packaging for Samsung Tizen, LG webOS and Android TV.
+A configurable **LightningJS Smart-TV runtime**. Write the app once; build it
+into **signed, production-deployable** apps for **Samsung Tizen** (`.wgt`),
+**LG webOS** (`.ipk`) and **Android TV** (`.apk`). Nx monorepo — TypeScript,
+Vite, i18next; hospitality-sideload distribution (no app-store review).
 
-This is not structured like a traditional web app. Apps are packaging and bootstrap shells. Product behavior, widgets, layouts, platform abstractions and business rules live in reusable libraries and customer configuration.
+This is not a traditional web app. `apps/` are thin bootstrap/packaging shells;
+product behavior lives in `libs/` and per-cruiseline config lives in `customers/`.
+
+> **New here?** Read [CLAUDE.md](CLAUDE.md) — architecture, decisions, and how-tos.
+
+## The build matrix
+
+Builds fan out along two axes — **cruiseline × platform**:
+
+```
+                 PLATFORM →   samsung(tizen)   lg(webos)   android-tv
+CRUISELINE ↓                  ─────────────────────────────────────────
+  ccl  (production)           CCL.wgt          CCL.ipk     CCL.apk
+```
+
+**CCL (Carnival)** is the current production tenant. The matrix stays in place so
+AIDA / RCCL / Disney can be onboarded later; each build compiles in exactly **one**
+tenant (per-brand isolation — see below).
 
 ## Workspace
 
 ```txt
-apps/
-  samsung-tv/          Thin Samsung/Tizen bootstrap and packaging entrypoint
-  lg-tv/               Thin LG/webOS bootstrap and packaging entrypoint
-  android-tv/          Thin Android TV bootstrap and packaging entrypoint
-libs/
-  core/                Platform composition and lifecycle
-  layout/              Server-driven layout schema and renderer
-  widget-registry/     Widget registration and lookup
-  navigation/          TV remote/focus navigation engine
-  websocket/           Realtime event bus
-  player/              Playback adapter contracts
-  i18n/                i18next initialization
-  integrations/        Backend API adapters such as XMM, Liferay and remote control
-  service-gateway/     Platform-facing service facade over backend sources
-  widgets/             LightningJS UI components and widget definitions
-  runtime-config/      Customer, profile, feature and layout loading
-  feature-flags/       Runtime flag helpers
-  themes/              Theme token contracts
-customers/
-  demo-hotel/          Example white-label customer config, layouts and locale files
-platforms/
-  samsung/             Samsung platform profiles and future packaging assets
-  lg/                  LG platform profiles and future packaging assets
-  android/             Android platform profiles and future packaging assets
-docs/                  Architecture notes
-tools/                 Workspace executors and release/build tooling
-```
-
-## Where Code Belongs
-
-Actual source code should be written in `libs/`. Apps must stay thin and only call `bootstrapTvPlatform`.
-
-Widgets live in `libs/widgets`. Widget registration lives in `libs/widget-registry`. Layout schemas and rendering live in `libs/layout`. Customer-owned layout JSON lives in `customers/<customer>/layouts`.
-
-Customer configs live in `customers/<customer>/config`, with locale resources in `customers/<customer>/i18n` and theme selection in runtime config. Platform-specific profiles live in `platforms/<platform>/profiles`. Future native packaging assets such as Tizen manifests, webOS appinfo, Android manifests and signing config should also live under `platforms/`.
-
-LightningJS components belong in `libs/widgets` or lower-level UI libraries added under `libs/`. The demo includes a DOM preview adapter in `libs/widgets/src/components/hero-banner.ts` and a LightningJS component example in `libs/widgets/src/components/hero-banner.lightning.ts`. Business logic belongs in domain libraries under `libs/`, never in `apps/`.
-
-Backend API adapters live in `libs/integrations/*`. They contain low-level transport, auth headers, DTOs and backend-specific response handling. Shared product behavior should consume `@x-tv/service-gateway`, not the adapters directly.
-
-## Composition
-
-One TV app is composed as:
-
-1. The app entrypoint identifies the target OS family and default profile.
-2. `@x-tv/core` creates the runtime.
-3. `@x-tv/runtime-config` resolves customer config, platform profile, feature flags, layout and runtime capabilities.
-4. `@x-tv/service-gateway` selects configured backend sources for layout, content and remote-control services.
-5. `@x-tv/widget-registry` exposes available widgets.
-6. `@x-tv/layout` renders the customer layout using registered widgets.
-7. `@x-tv/navigation` attaches remote-control navigation/focus behavior.
-
-Samsung bootstraps from `apps/samsung-tv/src/main.ts`:
-
-```ts
-import { bootstrapTvPlatform } from "@x-tv/core";
-
-void bootstrapTvPlatform({
-  appId: "samsung-tv",
-  platformId: "samsung",
-  defaultProfile: "tizen6"
-});
+apps/<platform>-tv/     Thin bootstrap shells + each platform's vite.config
+libs/                   All shared app code (see CLAUDE.md for the full list)
+platforms/<platform>/   profiles/*.json (capabilities) + templates/ (manifests)
+customers/<slug>/       config.json (sectioned) + layouts/ + i18n/ + assets/
+tools/                  build-tv, package-tv, signing, customer-slug, vite aliases
+docs/                   signing.md, DEV-PLAYBOOK.md
+signing/                signing.example.json (real creds gitignored)
 ```
 
 ## Commands
 
 ```sh
 npm install
-npm run dev:samsung
-npm run build:samsung
-nx build samsung --customer=AIDA --profile=tizen6
-nx build lg --customer=demo-hotel --profile=webos6
-nx build android --customer=demo-hotel --profile=android-tv-12
+npm run dev:samsung            # vite dev server (also dev:lg / dev:android)
+npm run build:samsung          # build + package one platform (defaults to ccl)
+npm run build:ccl              # all three platforms for ccl
+npm run package:samsung        # re-package an existing web build
+npm test                       # vitest
+npm run typecheck              # tsc --noEmit
+npm run lint  /  npm run format
 ```
 
-`--customer` selects a white-label configuration. `--profile` selects an OS/device capability profile. Build output is written to `dist/apps/<platform>-tv` and packaged platform output is written to `dist/platforms/<platform>/<customer>/<profile>`.
+Select a cell explicitly: `nx build samsung --customer=ccl --profile=tizen6`.
+Output: web bundle in `dist/apps/<platform>-tv`, packaged artifact in
+`dist/platforms/<platform>/<customer>/<profile>/artifacts`.
 
-Platform package outputs:
+Expose the dev server to a physical TV on your LAN:
+```sh
+XTV_DEV_HOST=0.0.0.0 npm run dev:samsung
+```
 
-- Samsung: stages a Tizen web app and creates a `.wgt` when `zip` is available.
-- LG: stages a webOS app and creates an `.ipk` when LG CLI `ares-package` is installed.
-- Android TV: stages an Android TV WebView project and creates an `.apk` when Android SDK and `gradle` are installed.
+## Signing
 
-Package-only commands can be used after a web build:
+Signing is **cert-pluggable**, keyed `(cruiseline, platform)`. Provide credentials
+via `XTV_<LINE>_*` env vars or a gitignored `signing/.signing.local.json`; with
+none set, the build emits an **unsigned** artifact plus a loud warning (build
+stays green). Full manual + automated instructions: **[docs/signing.md](docs/signing.md)**.
 
 ```sh
-npm run package:samsung -- --customer=AIDA --profile=tizen6
-npm run package:lg -- --customer=demo-hotel --profile=webos6
-npm run package:android -- --customer=demo-hotel --profile=android-tv-12
+export XTV_CCL_TIZEN_PROFILE=ccl-dev-2
+npm run build:samsung          # → signed CCL.wgt + sssp_config.xml
 ```
 
-For local browser preview, Samsung runs at [http://localhost:4301](http://localhost:4301). To expose the dev server on your LAN for a physical TV, run:
+## Config, remote override & live reload
 
-```sh
-XTV_DEV_HOST=0.0.0.0 npm run dev:samsung -- --customer=AIDA --profile=tizen6
-```
+Each tenant has one sectioned `customers/<slug>/config.json` (`runtime` /
+`integrations` / `identity` / `keymap`). At boot the app fetches
+`integrations.configUrl` from the head-end and **deep-merges it over** the bundled
+config — so config changes ship **without a rebuild**. A `{"type":"config.updated"}`
+websocket push triggers a **hot re-apply** (re-render in place, no TV reboot; soft
+reload fallback).
 
-## TV Diagnostics
+New behavior ships config-first: register a widget in `libs/widget-registry`,
+reference it in the tenant layout (`node.feature` gates it by flag), deliver config.
+Only genuinely new widget **code** needs a new build.
 
-The runtime mounts a diagnostics banner in the top-right corner. It shows platform, profile, customer, app id, MAC address when the TV runtime exposes it, model and build. Browsers do not expose real MAC addresses for privacy, so local preview shows `unavailable`; Samsung Tizen can use `webapis.network.getMac()`, LG can use `PalmSystem` metadata, and Android TV can provide values through a future native bridge at `globalThis.xtvAndroid`.
+## Per-brand isolation (GDPR)
 
-There is no practical terminal on most production TV runtimes. For TV debugging, use the built-in diagnostics console:
+Every build compiles in **exactly one** cruiseline. The slug is resolved
+**build-time only** (`tools/packaging/customer-slug.mjs`, never bundled); Vite
+aliases `@x-tv/tenant/*` to that one tenant's files. A CCL bundle contains **zero**
+tokens from any other brand. **Never** reintroduce `import.meta.glob("customers/*")`
+or a tenant alias map in shipped `libs/` — that leaks rival brands into an artifact.
 
-- Enter the diagnostics PIN on the remote numeric keypad. The demo customer PIN is `2580`.
-- Digits must be entered within the configured timeout, currently 5 seconds for the demo customer.
-- Browser/developer shortcuts still work when enabled: `F2`, `D`, `Info`, or Samsung red key `ColorF0Red`.
-- `console.log`, `console.info`, `console.warn`, and `console.error` are mirrored into the overlay.
-- Keep native tools available too: Samsung Remote Web Inspector, LG Web Inspector/ares tooling, Android `adb logcat`, and backend log correlation via `deviceId`.
+## TV diagnostics
 
-## Import Patterns
+The runtime mounts a diagnostics overlay (platform, profile, customer, device
+info) and mirrors `console.*`. Unlock the console with the remote numeric PIN
+(demo PIN `2580`, entered within the timeout), or developer shortcuts (`F2`, `D`,
+`Info`, Samsung `ColorF0Red`) when enabled. Native tools still apply: Samsung
+Remote Web Inspector, LG Web Inspector, Android `adb logcat`.
 
-Use package-style aliases for shared platform code:
+## Import patterns & boundaries
 
-```ts
-import { bootstrapTvPlatform } from "@x-tv/core";
-import { createLayoutRenderer } from "@x-tv/layout";
-import { createDefaultWidgetRegistry } from "@x-tv/widget-registry";
-```
+Reference shared code via `@x-tv/*` aliases; export public contracts from each lib's
+`src/index.ts`, no deep imports. Apps depend on `@x-tv/core` only. `core` composes
+libraries without business logic. Backend adapters live in `libs/integrations/*` and
+are consumed through `@x-tv/service-gateway`, never directly by widgets or apps.
 
-Avoid deep imports across library internals. Export public contracts from each library `src/index.ts`.
+## Development workflow
 
-Backend integrations use explicit package aliases:
-
-```ts
-import { createXmmApiClient } from "@x-tv/integrations/xmm-api";
-import { createLiferayApiClient } from "@x-tv/integrations/liferay-api";
-import { createRemoteControlApiClient } from "@x-tv/integrations/remote-control-api";
-import { createServiceGateway } from "@x-tv/service-gateway";
-```
-
-## Dependency Boundaries
-
-Apps may depend on `@x-tv/core` only.
-
-`core` composes libraries but should not contain business logic. `layout` may depend on widget registry contracts. `widget-registry` may depend on widget definitions. Domain libraries should not import app code or platform packaging files.
-
-Customer JSON can be loaded by runtime-config locally today and remotely later. Platform profiles are data, not app logic.
-
-Adapters under `libs/integrations/*` may import only generic platform contracts and their own types. Widgets and apps must not import integration adapters. The service gateway turns backend-specific DTOs into stable platform data contracts.
-
-## Customer Customization Without Redeploy
-
-The demo currently imports `customers/demo-hotel/layouts/home.json` locally. The same `RuntimeConfigLoader` boundary is designed to swap in remote layout delivery later:
-
-```txt
-CMS / layout service -> runtime-config -> layout renderer -> widget registry -> Lightning widgets
-```
-
-Future customers can customize layouts, themes, feature flags and locale resources through backend-delivered JSON as long as the app already contains the required widget types. New widget implementations require a new app build; new widget arrangements and content do not.
-
-## Scalability Notes
-
-- Add customer folders using kebab-case, for example `customers/aida-cruises`.
-- Add widgets with stable type keys, for example `hero-banner`, `live-tv-rail`, `room-service-menu`.
-- Keep runtime profiles explicit, for example `tizen6`, `tizen7`, `webos6`, `android-tv-12`.
-- Introduce domain libraries under `libs/` as the platform grows, such as `content`, `analytics`, `commerce`, `guest-services` or `epg`.
-- Add backend adapters under `libs/integrations/<source>-api`, then expose them through `libs/service-gateway`.
-- Enforce module boundaries with Nx tags once domain libraries mature.
-
-See [docs/architecture.md](/Users/shivakrishnadonthi/xcontrol-DEV/myApps/xTV-platform/docs/architecture.md) for the deeper foundation notes.
+See **[docs/DEV-PLAYBOOK.md](docs/DEV-PLAYBOOK.md)** — the skills/tools to use
+(security-review, Design/frontend-design for Hospitality TVs, ui-ux-pro-max,
+ponytail review/audit, Chrome DevTools, the Blits example app) and a paste-ready
+kickoff prompt.

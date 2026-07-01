@@ -18,4 +18,5 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm run build:samsung -- --customer=demo-hotel --profile=tizen6
+      - run: npm test
+      - run: npm run build:samsung -- --customer=ccl --profile=tizen6

@@ -3,10 +3,7 @@ import { resolve } from "node:path";
 // Per-brand isolation: `@x-tv/tenant/*` resolves to exactly ONE cruiseline's
 // files at build time (keyed by the resolved customer slug). Nothing globs all
 // tenants, so a brand's bundle can never contain another brand's config/layout.
-export function createXtvAliases(
-  workspaceRoot: string,
-  customer = "demo-hotel",
-): Record<string, string> {
+export function createXtvAliases(workspaceRoot: string, customer = "ccl"): Record<string, string> {
   return {
     "@x-tv/tenant/config": resolve(workspaceRoot, `customers/${customer}/config.json`),
     "@x-tv/tenant/layout": resolve(workspaceRoot, `customers/${customer}/layouts/home.json`),

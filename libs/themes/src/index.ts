@@ -7,11 +7,12 @@ export interface ThemeTokens {
   };
 }
 
-export const demoHotelTheme: ThemeTokens = {
-  id: "demo-hotel-dark",
+// CCL (Carnival) brand tokens — matches the "ccl-red" theme in the tenant config.
+export const cclTheme: ThemeTokens = {
+  id: "ccl-red",
   colors: {
-    background: "#07131f",
+    background: "#0a1a2f",
     text: "#f5f8fb",
-    accent: "#49c6e5",
+    accent: "#e11b3c",
   },
 };

@@ -34,8 +34,8 @@
       "@x-tv/feature-flags": ["libs/feature-flags/src/index.ts"],
       "@x-tv/themes": ["libs/themes/src/index.ts"],
       "@x-tv/muting": ["libs/muting/src/index.ts"],
-      "@x-tv/tenant/config": ["customers/demo-hotel/config.json"],
-      "@x-tv/tenant/layout": ["customers/demo-hotel/layouts/home.json"]
+      "@x-tv/tenant/config": ["customers/ccl/config.json"],
+      "@x-tv/tenant/layout": ["customers/ccl/layouts/home.json"]
     }
   },
   "include": ["apps/**/*.ts", "libs/**/*.ts", "tools/**/*.ts"],

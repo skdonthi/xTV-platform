@@ -12,10 +12,12 @@
     "build:lg": "NX_ISOLATE_PLUGINS=false nx build lg",
     "build:android": "NX_ISOLATE_PLUGINS=false nx build android",
     "build": "NX_ISOLATE_PLUGINS=false nx run-many -t build -p samsung,lg,android",
-    "build:tizen6:aida": "NX_ISOLATE_PLUGINS=false nx build samsung --customer=AIDA --profile=tizen6",
+    "build:ccl": "NX_ISOLATE_PLUGINS=false nx run-many -t build -p samsung,lg,android --customer=ccl",
     "package:samsung": "node tools/packaging/package-tv.mjs --app=samsung",
     "package:lg": "node tools/packaging/package-tv.mjs --app=lg",
     "package:android": "node tools/packaging/package-tv.mjs --app=android",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc -p tsconfig.base.json --noEmit"

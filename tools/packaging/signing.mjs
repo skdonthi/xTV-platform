@@ -14,7 +14,7 @@
 //             XTV_<LINE>_ANDROID_KEY_ALIAS
 //             XTV_<LINE>_ANDROID_KEY_PASS
 //
-// <LINE> = customer slug upper-cased, non-alphanumerics -> "_" (e.g. demo-hotel -> DEMO_HOTEL).
+// <LINE> = customer slug upper-cased, non-alphanumerics -> "_" (e.g. ccl -> CCL).
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

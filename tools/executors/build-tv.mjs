@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { resolveCustomerSlug } from "../customer-slug.mjs";
+import { resolveCustomerSlug } from "../packaging/customer-slug.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const app = required(args.app, "app");

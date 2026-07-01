@@ -2,18 +2,9 @@
   "_comment": "Copy to signing/.signing.local.json (gitignored) for local signing, OR set the equivalent XTV_<LINE>_* env vars in CI. Keyed by cruiseline slug, then platform. Shared CLI paths sit at the top level.",
   "tizenCli": "/Users/you/.tizen-extension-platform/server/sdktools/data/tools/ide/bin",
   "aresCli": "/opt/webOS_TV_SDK/CLI/bin",
-  "aida": {
-    "samsung": { "profile": "aida-partner" },
-    "lg": { "signKey": "/secure/aida-webos.cert" },
-    "android": {
-      "keystore": "/secure/aida.jks",
-      "keystorePass": "changeit",
-      "keyAlias": "aida",
-      "keyPass": "changeit"
-    }
-  },
   "ccl": {
     "samsung": { "profile": "ccl-dev-2" },
+    "lg": { "signKey": "/secure/ccl-webos.cert" },
     "android": {
       "keystore": "/secure/ccl.jks",
       "keystorePass": "changeit",
