@@ -2,7 +2,7 @@
   "runtime": {
     "customer": "ccl",
     "locale": "en",
-    "theme": "ccl-red",
+    "theme": "carnival-day",
     "features": {
       "remoteLayouts": true,
       "websocketEvents": true,
@@ -20,8 +20,8 @@
   "integrations": {
     "runtime": {
       "customerId": "ccl",
-      "layoutSource": "liferay",
-      "contentSource": "liferay"
+      "layoutSource": "local",
+      "contentSource": "local"
     },
     "liferayApi": {
       "baseUrl": "https://portal.ccl.example.invalid/",

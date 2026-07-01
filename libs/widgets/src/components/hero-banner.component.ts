@@ -11,5 +11,5 @@ export default Blits.Component("HeroBanner", {
       </Element>
     </Element>
   `,
-  props: ["title", "subtitle", "background"],
+  props: { title: {}, subtitle: {}, background: {} },
 });

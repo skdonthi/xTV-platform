@@ -13,6 +13,8 @@
     "build:android": "nx build android",
     "build": "nx run-many -t build -p samsung,lg,android",
     "build:ccl": "nx run-many -t build -p samsung,lg,android --customer=ccl",
+    "clean": "rm -rf dist",
+    "build:clean": "npm run clean && npm run build",
     "package:samsung": "node tools/packaging/package-tv.mjs --app=samsung",
     "package:lg": "node tools/packaging/package-tv.mjs --app=lg",
     "package:android": "node tools/packaging/package-tv.mjs --app=android",

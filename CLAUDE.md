@@ -39,7 +39,7 @@ A build is one **cell**: `nx build samsung --customer=ccl --profile=tizen6`.
 | `platforms/<platform>/` | Packaging inputs: `profiles/*.json` (capabilities) + `templates/` (container manifests). **Not app code.** |
 | `customers/<slug>/` | Per-cruiseline content: `config.json` (sectioned), `layouts/`, `i18n/`, `assets/`. |
 | `tools/` | Build tooling: `executors/build-tv.mjs`, `packaging/` (package-tv, signing, customer-slug), `vite/xtv-aliases.ts`. |
-| `docs/` | `signing.md` (manual signing), `config-hot-reload.md` (live config, no reboot), `state-and-storage.md` (state layers + persistence), `tv-platform-reference.md` (keycodes + device APIs), `DEV-PLAYBOOK.md` (skills/workflow). |
+| `docs/` | `signing.md` (manual signing), `config-hot-reload.md` (live config, no reboot), `theming.md` (config-driven themes), `state-and-storage.md` (state layers + persistence), `tv-platform-reference.md` (keycodes + device APIs), `DEV-PLAYBOOK.md` (skills/workflow). |
 | `signing/` | `signing.example.json` (template). Real creds in gitignored `.signing.local.json`. |
 
 ### Key libs
@@ -117,6 +117,13 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
    service-gateway — localStorage is best-effort only (TV quota; wiped on
    update/uninstall). zustand was removed (unused; Blits covers reactive state).
    Full model: `docs/state-and-storage.md`.
+10. **Release version is build-time, not runtime.** Each cruiseline's version lives
+    in `customers/<line>/release.json` (engineering-owned; gradle-style versionName,
+    versionCode derived) — baked into the artifact (config.xml/appinfo version, `.wgt`
+    name, Android versionCode). **NOT** in `config.json` (that's deployment/head-end-
+    owned + runtime-overridable). Packager precedence: `--version` > `XTV_APP_VERSION`
+    (CI) > `release.json` > root `package.json`. Don't pass `--version` through
+    `nx build` — nx swallows it; use `XTV_APP_VERSION` for CI.
 
 ## How to…
 

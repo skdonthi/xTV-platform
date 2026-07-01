@@ -1,0 +1,4 @@
+{
+  "_comment": "Engineering-owned release version for this cruiseline (gradle-style versionName). Baked into the artifact at build time — NOT runtime config, NOT head-end-overridable. CI may override via XTV_APP_VERSION. versionCode is derived from this.",
+  "version": "1.0.0"
+}

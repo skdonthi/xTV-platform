@@ -10,23 +10,31 @@ export function createLayoutGateway(dependencies: {
 }): LayoutGateway {
   return {
     async getActiveLayout(fallbackLayout) {
-      if (dependencies.config.layoutSource === "xmm") {
-        const client = requireClient(dependencies.xmmApi, "XMM");
-        const layout = await client.getActiveLayout(dependencies.config.customerId);
-        return assertCustomerLayout(layout.payload);
-      }
-
-      if (dependencies.config.layoutSource === "liferay") {
-        const client = requireClient(dependencies.liferayApi, "Liferay");
-        const layout = await client.getLayoutContent("ACTIVE_TV_LAYOUT");
-        const payloadField = layout.contentFields.find((field) => field.name === "layoutJson");
-        const rawLayout = payloadField?.contentFieldValue.data;
-
-        if (!rawLayout) {
-          throw new Error("Liferay layout response did not include layoutJson.");
+      // Remote layout is an OVERRIDE; the bundled layout is the fallback. A TV
+      // must boot even when the head-end is unreachable — never let a failed
+      // fetch crash the app. Any remote error → bundled layout + a warning.
+      try {
+        if (dependencies.config.layoutSource === "xmm") {
+          const client = requireClient(dependencies.xmmApi, "XMM");
+          const layout = await client.getActiveLayout(dependencies.config.customerId);
+          return assertCustomerLayout(layout.payload);
         }
 
-        return assertCustomerLayout(JSON.parse(rawLayout) as unknown);
+        if (dependencies.config.layoutSource === "liferay") {
+          const client = requireClient(dependencies.liferayApi, "Liferay");
+          const layout = await client.getLayoutContent("ACTIVE_TV_LAYOUT");
+          const payloadField = layout.contentFields.find((field) => field.name === "layoutJson");
+          const rawLayout = payloadField?.contentFieldValue.data;
+
+          if (!rawLayout) {
+            throw new Error("Liferay layout response did not include layoutJson.");
+          }
+
+          return assertCustomerLayout(JSON.parse(rawLayout) as unknown);
+        }
+      } catch (error) {
+        console.warn("Remote layout fetch failed; using bundled layout.", error);
+        return fallbackLayout;
       }
 
       return fallbackLayout;
