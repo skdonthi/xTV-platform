@@ -1,5 +1,6 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import blits from "@lightningjs/blits/vite";
 import { defineConfig } from "vite";
 import { createXtvAliases } from "../../tools/vite/xtv-aliases";
 
@@ -12,6 +13,7 @@ export default defineConfig({
   // This is the LightningJS analog of CCL's XC_WEB_ROOT path-portability fix.
   base: "./",
   cacheDir: "../../node_modules/.vite/apps/samsung-tv",
+  plugins: [...blits],
   resolve: {
     alias: createXtvAliases(workspaceRoot, process.env.VITE_XTV_CUSTOMER),
   },

@@ -23,9 +23,7 @@
     "typecheck": "tsc -p tsconfig.base.json --noEmit"
   },
   "dependencies": {
-    "@lightningjs/core": "^2.16.0",
-    "@lightningjs/sdk": "^5.5.0",
-    "@lightningjs/ui-components": "^1.0.0",
+    "@lightningjs/blits": "^2.6.0",
     "i18next": "^25.2.0",
     "zustand": "^5.0.5"
   },
