@@ -1,12 +1,28 @@
 import { spawnSync } from "node:child_process";
+import { cpSync, existsSync, rmSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { resolveCustomerSlug } from "../packaging/customer-slug.mjs";
 
+const workspaceRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const args = parseArgs(process.argv.slice(2));
 const app = required(args.app, "app");
 // Resolve alias -> slug ONCE here; everything downstream (Vite tenant alias,
 // packager) receives the resolved slug so only one tenant is ever compiled in.
 const customer = resolveCustomerSlug(args.customer);
 const profile = args.profile ?? defaultProfileFor(app);
+
+// Materialize the active tenant's public/ (fonts, brand assets) into the app's
+// public dir. Blits' msdf generator scans <appRoot>/public (hard-coded), so the
+// tenant's assets must live there at build time. Cleaned + recopied each build,
+// so only the active cruiseline's assets are ever present (isolation). The app
+// public dir is gitignored (generated).
+const appPublic = resolve(workspaceRoot, "apps", `${app}-tv`, "public");
+const tenantPublic = resolve(workspaceRoot, "customers", customer, "public");
+rmSync(appPublic, { recursive: true, force: true });
+if (existsSync(tenantPublic)) {
+  cpSync(tenantPublic, appPublic, { recursive: true });
+}
 const command = args.serve ? "vite" : "vite";
 const devHost = process.env.XTV_DEV_HOST ?? "127.0.0.1";
 const viteArgs = args.serve

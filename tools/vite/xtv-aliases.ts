@@ -30,5 +30,6 @@ export function createXtvAliases(workspaceRoot: string, customer = "ccl"): Recor
     "@x-tv/feature-flags": resolve(workspaceRoot, "libs/feature-flags/src/index.ts"),
     "@x-tv/themes": resolve(workspaceRoot, "libs/themes/src/index.ts"),
     "@x-tv/muting": resolve(workspaceRoot, "libs/muting/src/index.ts"),
+    "@x-tv/storage": resolve(workspaceRoot, "libs/storage/src/index.ts"),
   };
 }

@@ -1,3 +1,7 @@
+import { createStorage } from "@x-tv/storage";
+
+const deviceStore = createStorage("device");
+
 export interface DeviceInfo {
   platform: string;
   profile: string;
@@ -89,15 +93,13 @@ function readAndroidDeviceInfo(): Partial<DeviceInfo> {
 }
 
 function fallbackDeviceId(): string {
-  const storageKey = "xtv.deviceId";
-  const existing = window.localStorage.getItem(storageKey);
-
+  const existing = deviceStore.get<string>("id");
   if (existing) {
     return existing;
   }
 
   const generated = globalThis.crypto?.randomUUID?.() ?? `preview-${Date.now()}`;
-  window.localStorage.setItem(storageKey, generated);
+  deviceStore.set("id", generated);
   return generated;
 }
 

@@ -1,0 +1,7 @@
+{
+  "name": "storage",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/storage/src",
+  "tags": ["scope:platform", "type:util"]
+}
