@@ -39,7 +39,7 @@ A build is one **cell**: `nx build samsung --customer=ccl --profile=tizen6`.
 | `platforms/<platform>/` | Packaging inputs: `profiles/*.json` (capabilities) + `templates/` (container manifests). **Not app code.** |
 | `customers/<slug>/` | Per-cruiseline content: `config.json` (sectioned), `layouts/`, `i18n/`, `assets/`. |
 | `tools/` | Build tooling: `executors/build-tv.mjs`, `packaging/` (package-tv, signing, customer-slug), `vite/xtv-aliases.ts`. |
-| `docs/` | `signing.md` (manual signing), `config-hot-reload.md` (live config, no reboot), `DEV-PLAYBOOK.md` (skills/workflow). |
+| `docs/` | `signing.md` (manual signing), `config-hot-reload.md` (live config, no reboot), `tv-platform-reference.md` (keycodes + device APIs), `DEV-PLAYBOOK.md` (skills/workflow). |
 | `signing/` | `signing.example.json` (template). Real creds in gitignored `.signing.local.json`. |
 
 ### Key libs

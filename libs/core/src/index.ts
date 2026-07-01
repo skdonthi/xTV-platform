@@ -49,18 +49,22 @@ export async function bootstrapTvPlatform(
     config: runtimeConfig.diagnostics,
   });
   const registry = createDefaultWidgetRegistry();
+  // ONE navigation engine + renderer for the app's lifetime. Re-rendering reuses
+  // them; the keymap is hot-swapped via setKeymap so a config change can remap the
+  // remote with no reboot and no leaked listener.
+  const navigation = createNavigationEngine({
+    platform: runtimeConfig.platform.platform,
+    keymapOverride: runtimeConfig.keymapOverride,
+  });
+  const renderer = createLayoutRenderer({ registry, navigation });
 
   // Renders the whole tree from a config snapshot. Called at boot and again on
-  // every hot config apply — the renderer clears #app and navigation.attach is
-  // idempotent, so re-running it live-updates layout/theme/features in place.
+  // every hot config apply — the renderer clears #app, navigation.attach is
+  // idempotent, and setKeymap swaps the remote mapping live.
   async function applyAndRender(config: RuntimeConfig): Promise<void> {
     const services = createServiceGateway(config.services);
     const activeLayout = await services.layout.getActiveLayout(config.layout);
-    const navigation = createNavigationEngine({
-      platform: config.platform.platform,
-      keymapOverride: config.keymapOverride,
-    });
-    const renderer = createLayoutRenderer({ registry, navigation });
+    navigation.setKeymap(config.keymapOverride);
     await renderer.render(activeLayout, {
       customer: config.customer,
       locale: config.locale,

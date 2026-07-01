@@ -35,17 +35,24 @@ Code: `applyRemoteOverride()` + `deepMerge()` in
 
 | Level | Trigger | What it applies | TV reboot? |
 |---|---|---|---|
-| **Hot re-apply** | `config.updated` push | layout, theme, features, endpoints | No — seamless, no flash |
-| **Soft reload** | fallback / manual | everything config-driven | No — app re-boots (~1s), TV stays on |
+| **Hot re-apply** | `config.updated` push | layout, theme, features, endpoints, **keymap** | No — seamless, no flash |
+| **Soft reload** | fallback on error | everything config-driven | No — app re-boots (~1s), TV stays on |
 | **Rebuild + reinstall** | new widget **code** | new binary | No, but reinstall via SSSP/ares/adb |
 
 **Everything config-driven is hot-applyable** because the renderer rebuilds `#app`
 from the config snapshot on every call — re-running it with fresh config *is* the
 live update. Only shipping **new widget code** needs a rebuild.
 
-> Current limitation: keymap changes fall back to soft reload; layout / theme /
-> features / endpoints apply hot. (Navigation is constructed per apply, but the
-> engine is created at bootstrap — a live keymap swap uses the reload path.)
+### Keymap is hot too
+
+A single navigation engine lives for the app's lifetime; `applyAndRender` calls
+`navigation.setKeymap(config.keymapOverride)`, which swaps the internal lookup with
+no re-subscribe and no leaked listener. So a cruiseline can remap its remote
+(`keymap` section of `config.json`, delivered via the head-end override) and push
+`config.updated` — the new mapping takes effect on the very next keypress, no reboot.
+
+Code: `setKeymap()` in [`libs/navigation/src/index.ts`](../libs/navigation/src/index.ts),
+called from `applyAndRender()` in [`libs/core/src/index.ts`](../libs/core/src/index.ts).
 
 ## The live-reload trigger (websocket)
 
