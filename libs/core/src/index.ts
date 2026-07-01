@@ -8,6 +8,7 @@ import {
 import { createAudioController, createMutingController } from "@x-tv/muting";
 import { createRuntimeConfigLoader } from "@x-tv/runtime-config";
 import { createServiceGateway } from "@x-tv/service-gateway";
+import { appStatePlugin } from "@x-tv/storage";
 import { createWebsocketEventBus } from "@x-tv/websocket";
 import App from "./app";
 import { setBootConfig } from "./boot-config";
@@ -90,8 +91,24 @@ export async function bootstrapTvPlatform(
   const runtime: TvPlatformRuntime = {
     appId: options.appId,
     async start() {
-      // Launch the Blits (LightningJS canvas) app into #app.
-      Blits.Launch(App, "app", { w: 1920, h: 1080, debugLevel: 1 });
+      // Global reactive app state (Blits appState plugin), seeded from config.
+      // Components read/write via this.$appState.
+      Blits.Plugin(appStatePlugin, {
+        customer: runtimeConfig.customer,
+        platform: runtimeConfig.platform.platform,
+        locale: runtimeConfig.locale,
+      });
+
+      // Launch the Blits (LightningJS canvas) app into #app. The font set is
+      // tenant-driven (customers/<line>/config.json `fonts`), served from the
+      // tenant public dir with relative paths so they resolve under file://.
+      Blits.Launch(App, "app", {
+        w: 1920,
+        h: 1080,
+        debugLevel: 1,
+        defaultFont: runtimeConfig.fonts.default,
+        fonts: runtimeConfig.fonts.families,
+      } as Parameters<typeof Blits.Launch>[2]);
       if (runtimeConfig.diagnostics.enabled) {
         diagnostics.mount();
       }

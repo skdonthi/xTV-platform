@@ -21,6 +21,19 @@ export interface PlatformProfile {
   capabilities: Record<string, boolean | string | number>;
 }
 
+// Tenant-declared font set (Blits font descriptors). `file` is relative to the
+// tenant public dir so it resolves under file:// on-device.
+export interface FontFace {
+  family: string;
+  type: "msdf" | "sdf" | "web";
+  file: string;
+}
+
+export interface FontSet {
+  default: string;
+  families: FontFace[];
+}
+
 export interface RuntimeConfig {
   customer: string;
   locale: string;
@@ -37,6 +50,7 @@ export interface RuntimeConfig {
   services: ServiceGatewayConfig;
   keymapOverride: KeymapConfig;
   realtime: { websocketUrl?: string; mutingUrl?: string };
+  fonts: FontSet;
 }
 
 export interface RuntimeConfigLoader {
@@ -52,10 +66,14 @@ interface TenantIntegrations extends ServiceGatewayConfig {
 }
 
 interface TenantConfigFile {
-  runtime: Omit<RuntimeConfig, "layout" | "platform" | "services" | "keymapOverride" | "realtime">;
+  runtime: Omit<
+    RuntimeConfig,
+    "layout" | "platform" | "services" | "keymapOverride" | "realtime" | "fonts"
+  >;
   integrations: TenantIntegrations;
   identity?: unknown;
   keymap?: KeymapConfig;
+  fonts?: FontSet;
 }
 
 const bundledConfig = tenantConfig as unknown as TenantConfigFile;
@@ -121,6 +139,8 @@ export function createRuntimeConfigLoader(options: {
           websocketUrl: integrations.websocket?.url,
           mutingUrl: integrations.mutingService?.url,
         },
+        // Built-in "sans-serif" renderer default when a tenant declares no fonts.
+        fonts: merged.fonts ?? { default: "sans-serif", families: [] },
       };
     },
   };

@@ -48,7 +48,7 @@ remote override) · `layout` (server-driven layout + renderer) · `widget-regist
 · `navigation` (keymap → `xtv:action`) · `muting` (audio muting, ports & adapters)
 · `service-gateway` + `integrations/*` (backend adapters: xmm, liferay,
 remote-control) · `websocket` · `diagnostics` (overlay) · `player` (ports &
-adapters: avplay / Android bridge / HTML5) · `feature-flags` · `themes` · `i18n`.
+adapters: avplay / Android bridge / HTML5) · `feature-flags` · `themes` · `i18n` · `storage` (persistence + Blits appState).
 
 ## Bootstrap flow (`libs/core/src/index.ts`)
 
@@ -108,6 +108,14 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
    known widget (hero) from config; fully config-driven multi-widget + feature-gated
    Blits layout, keymap→Blits input, and Blits-reactive hot-apply (currently a soft
    reload) are follow-ups.
+9. **State & storage.** Local/UI state = Blits component `state()`. Global reactive
+   state = Blits `appState` plugin (registered in core, seeded from config; read via
+   `this.$appState`). Persistence = `@x-tv/storage` `createStorage(namespace)` — a
+   namespaced (`xtv.<ns>.`) wrapper over Blits' storage plugin with an in-memory
+   fallback, safe to import ANYWHERE (bootstrap, libs, components). **Durable state
+   (guest prefs, entitlements, resume points) lives on the head-end** via
+   service-gateway — localStorage is best-effort only (TV quota; wiped on
+   update/uninstall). zustand was removed (unused; Blits covers reactive state).
 
 ## How to…
 
