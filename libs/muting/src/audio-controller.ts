@@ -10,9 +10,9 @@ export interface AudioController {
 // Narrow, guarded views of the platform globals (untyped at runtime on TVs).
 // We never assume the API exists — every adapter degrades to a safe local flag.
 type TizenAudio = { setMute(muted: boolean): void; getMute(): boolean };
-type WebosService = {
-  request(uri: string, params: { method: string; parameters: Record<string, unknown> }): void;
-};
+// LG hospitality exposes audio control on the firmware-injected `hcap` global —
+// no webOSTV.js / luna dependency (matches the legacy LG service).
+type Hcap = { setMute(muted: boolean): void; getMute?(): boolean };
 type AndroidBridge = { setMuted(muted: boolean): void };
 
 function globalProp<T>(name: string): T | undefined {
@@ -35,20 +35,18 @@ function createTizenAudio(): AudioController {
   };
 }
 
-// LG webOS: the luna audio service.
+// LG webOS (Pro:Centric hospitality): firmware-injected `hcap` global. Method
+// name per HCAP docs — verify on-device. Falls back to a local flag off-device.
 function createWebosAudio(): AudioController {
-  const webos = globalProp<{ service?: WebosService }>("webOS")?.service;
+  const hcap = globalProp<Hcap>("hcap");
   let muted = false;
   return {
     setMuted(next) {
       muted = next;
-      webos?.request("luna://com.webos.audio", {
-        method: "setMuted",
-        parameters: { muted: next },
-      });
+      hcap?.setMute(next);
     },
     isMuted() {
-      return muted;
+      return hcap?.getMute ? hcap.getMute() : muted;
     },
   };
 }

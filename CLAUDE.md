@@ -126,6 +126,12 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 - **LG/Android per-cruiseline certs** are procurement-pending; the pluggable design
   keeps builds green meanwhile.
 - On this dev Mac: `tizen` + `ares-package` are installed, `gradle` is not.
+- **Platform SDK globals are firmware-provided, not vendored.** `apps/samsung-tv/index.html`
+  loads Tizen `webapis.js` / `avplayextension.js` / `b2bapis.js` via `$WEBAPIS`/`$B2BAPIS`
+  script tags (resolved on-device; 404 harmlessly in a browser). LG uses the
+  firmware `hcap` global (no webOSTV.js). Android uses the native `xtvAndroid`
+  bridge. Adapters (`libs/muting`, `libs/player`) guard these globals and fall
+  back to HTML5/local, so dev never breaks.
 
 ## Development workflow
 
