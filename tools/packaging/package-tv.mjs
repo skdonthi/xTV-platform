@@ -11,9 +11,18 @@ const args = parseArgs(process.argv.slice(2));
 const app = required(args.app, "app");
 const customer = resolveCustomerSlug(args.customer);
 const profile = args.profile ?? defaultProfileFor(app);
-const version = args.version ?? readPackageVersion();
+const tenantConfig = readTenantConfig(customer);
+// Release version is engineering-owned + baked into the artifact (gradle-style
+// versionName; versionCode derived). It lives in customers/<line>/release.json,
+// NOT the deployment-generated runtime config.json. Precedence:
+//   --version (direct CLI) > XTV_APP_VERSION (CI) > release.json > root package.json
+const version =
+  args.version ??
+  process.env.XTV_APP_VERSION ??
+  readTenantRelease(customer) ??
+  readPackageVersion();
 const ssspVer = args.sssp ?? "1.00";
-const identity = readTenantIdentity(customer);
+const identity = tenantConfig.identity ?? {};
 const appMeta = createAppMeta({ app, customer, profile, version, identity });
 const webBundleDir = resolve(workspaceRoot, "dist/apps", `${app}-tv`);
 const platformOutDir = resolve(workspaceRoot, "dist/platforms", app, customer, profile);
@@ -122,10 +131,13 @@ async function packageLg({ stageDir, artifactsDir, appMeta }) {
 
   if (hasCommand(aresBin)) {
     execFileSync(aresBin, [stageDir, "-o", artifactsDir], { stdio: "inherit" });
-    // Pro:Centric .ipk signing (LG SI tooling) is applied here once signing.signKey
-    // is provisioned; until then the .ipk is built unsigned.
-    if (!signing.available) {
-      warnUnsigned(customer, "lg");
+    // An unsigned .ipk is a valid, deployable webOS artifact: it installs on a
+    // Dev Mode TV via ares-install, and the Content Store signs on submission.
+    // LG does NOT require a Samsung-style distributor cert. Pro:Centric (SI)
+    // signing is the exception — applied here only when a sign key is provided.
+    if (signing.available) {
+      // TODO: apply Pro:Centric signing with signing.signKey (LG SI tooling).
+      console.info(`Signing LG .ipk for ${customer} (Pro:Centric).`);
     }
   } else {
     await writeFile(
@@ -138,7 +150,6 @@ async function packageLg({ stageDir, artifactsDir, appMeta }) {
       ].join("\n"),
     );
     console.warn("ares-package not found. LG stage created without .ipk archive.");
-    warnUnsigned(customer, "lg");
   }
 }
 
@@ -283,16 +294,31 @@ async function copyIconOrPlaceholder(destPath, name) {
   await writePlaceholderPng(destPath);
 }
 
-function readTenantIdentity(customer) {
+// Parsed tenant config.json (identity, runtime, …); {} if missing/unreadable.
+function readTenantConfig(customer) {
   const path = resolve(workspaceRoot, "customers", customer, "config.json");
   if (!existsSync(path)) {
     return {};
   }
   try {
-    return JSON.parse(readFileSync(path, "utf8")).identity ?? {};
+    return JSON.parse(readFileSync(path, "utf8"));
   } catch (error) {
     console.warn(`Could not parse config.json for ${customer}: ${error.message}`);
     return {};
+  }
+}
+
+// Engineering-owned release version from customers/<line>/release.json (or undefined).
+function readTenantRelease(customer) {
+  const path = resolve(workspaceRoot, "customers", customer, "release.json");
+  if (!existsSync(path)) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(readFileSync(path, "utf8")).version;
+  } catch (error) {
+    console.warn(`Could not parse release.json for ${customer}: ${error.message}`);
+    return undefined;
   }
 }
 

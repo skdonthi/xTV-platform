@@ -97,20 +97,31 @@ export async function bootstrapTvPlatform(
         customer: runtimeConfig.customer,
         platform: runtimeConfig.platform.platform,
         locale: runtimeConfig.locale,
+        theme: runtimeConfig.theme,
       });
+
+      // Mount diagnostics FIRST so its on-screen console is available even if the
+      // Blits launch fails on-device (unlock with the remote PIN). Errors then
+      // surface on the TV instead of a blank screen.
+      if (runtimeConfig.diagnostics.enabled) {
+        diagnostics.mount();
+      }
 
       // Launch the Blits (LightningJS canvas) app into #app. The font set is
       // tenant-driven (customers/<line>/config.json `fonts`), served from the
       // tenant public dir with relative paths so they resolve under file://.
-      Blits.Launch(App, "app", {
-        w: 1920,
-        h: 1080,
-        debugLevel: 1,
-        defaultFont: runtimeConfig.fonts.default,
-        fonts: runtimeConfig.fonts.families,
-      } as Parameters<typeof Blits.Launch>[2]);
-      if (runtimeConfig.diagnostics.enabled) {
-        diagnostics.mount();
+      // multithreaded:false — the renderer worker fails under file:// on some TVs.
+      try {
+        Blits.Launch(App, "app", {
+          w: 1920,
+          h: 1080,
+          debugLevel: 1,
+          multithreaded: false,
+          defaultFont: runtimeConfig.fonts.default,
+          fonts: runtimeConfig.fonts.families,
+        } as Parameters<typeof Blits.Launch>[2]);
+      } catch (error) {
+        console.error("Blits.Launch failed", error);
       }
       connectLiveConfig();
       connectMuting();

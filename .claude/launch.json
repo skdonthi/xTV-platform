@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "samsung-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:samsung"],
+      "port": 4301
+    }
+  ]
+}

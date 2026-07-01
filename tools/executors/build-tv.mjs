@@ -52,6 +52,7 @@ if (!args.serve) {
       `--customer=${customer}`,
       `--profile=${profile}`,
       ...(args.version ? [`--version=${args.version}`] : []),
+      ...(args.sssp ? [`--sssp=${args.sssp}`] : []),
     ],
     {
       cwd: process.cwd(),

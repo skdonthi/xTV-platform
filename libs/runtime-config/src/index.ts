@@ -65,11 +65,16 @@ interface TenantIntegrations extends ServiceGatewayConfig {
   configUrl?: string | null;
 }
 
+interface TenantRuntimeSection {
+  customer: string;
+  locale: string;
+  theme: string; // theme id (device/group-driven theming comes later via XMM)
+  features: Record<string, boolean>;
+  diagnostics: RuntimeConfig["diagnostics"];
+}
+
 interface TenantConfigFile {
-  runtime: Omit<
-    RuntimeConfig,
-    "layout" | "platform" | "services" | "keymapOverride" | "realtime" | "fonts"
-  >;
+  runtime: TenantRuntimeSection;
   integrations: TenantIntegrations;
   identity?: unknown;
   keymap?: KeymapConfig;
@@ -115,10 +120,14 @@ export function createRuntimeConfigLoader(options: {
       // is authoritative and merged on top — so config changes without a rebuild.
       const merged = await applyRemoteOverride(bundledConfig);
       const integrations = merged.integrations;
+      const runtime = merged.runtime;
 
       return {
-        ...merged.runtime,
         customer,
+        locale: runtime.locale,
+        theme: runtime.theme,
+        features: runtime.features,
+        diagnostics: runtime.diagnostics,
         layout: bundledLayout,
         platform: {
           ...profile,
