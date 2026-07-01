@@ -74,7 +74,9 @@ function createHtml5Player(): PlayerAdapter {
     },
     async play() {
       status = "playing";
-      await ensure()?.play().catch(() => {});
+      await ensure()
+        ?.play()
+        .catch(() => {});
     },
     async pause() {
       status = "paused";
