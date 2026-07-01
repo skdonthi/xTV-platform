@@ -1,6 +1,11 @@
 import type { CustomerLayout } from "@x-tv/layout";
 import type { KeymapConfig } from "@x-tv/navigation";
 import type { ServiceGatewayConfig } from "@x-tv/service-gateway";
+// `@x-tv/tenant/*` is aliased at build time to exactly ONE cruiseline's files
+// (see tools/vite/xtv-aliases.ts). Static imports mean the bundle contains only
+// the active brand — no other tenant's config/layout/names ever ship (GDPR).
+import tenantConfig from "@x-tv/tenant/config";
+import tenantLayout from "@x-tv/tenant/layout";
 import androidTv12 from "../../../platforms/android/profiles/android-tv-12.json";
 import webos6 from "../../../platforms/lg/profiles/webos6.json";
 import tizen6 from "../../../platforms/samsung/profiles/tizen6.json";
@@ -48,21 +53,8 @@ interface TenantConfigFile {
   keymap?: KeymapConfig;
 }
 
-// Cruiseline axis: every tenant under customers/ is discovered at build time.
-// Adding a new cruiseline = a new customers/<slug>/config.json, no loader edits.
-const configFiles = import.meta.glob("../../../customers/*/config.json", { eager: true });
-const layoutFiles = import.meta.glob("../../../customers/*/layouts/home.json", { eager: true });
-
-const configByCustomer = indexByCustomer(configFiles);
-const layoutByCustomer = indexByCustomer(layoutFiles);
-
-// Provisioning aliases: head-end identifiers map to a tenant slug.
-const customerAliases: Record<string, string> = {
-  AIDA: "aida",
-  CCL: "ccl",
-  CARNIVAL: "ccl",
-  DEMO_HOTEL: "demo-hotel",
-};
+const bundledConfig = tenantConfig as unknown as TenantConfigFile;
+const bundledLayout = tenantLayout as unknown as CustomerLayout;
 
 const platformProfiles: Record<string, PlatformProfile> = {
   tizen6,
@@ -76,9 +68,7 @@ export function createRuntimeConfigLoader(options: {
 }): RuntimeConfigLoader {
   return {
     async load() {
-      const requestedCustomer = import.meta.env.VITE_XTV_CUSTOMER ?? "demo-hotel";
       const requestedProfile = import.meta.env.VITE_XTV_PROFILE ?? options.defaultProfile;
-      const customer = customerAliases[requestedCustomer] ?? requestedCustomer;
       const profile = platformProfiles[requestedProfile];
 
       if (!profile) {
@@ -91,24 +81,17 @@ export function createRuntimeConfigLoader(options: {
         );
       }
 
-      const bundled = configByCustomer[customer] as TenantConfigFile | undefined;
-      const layout = layoutByCustomer[customer];
-
-      if (!bundled || !layout) {
-        throw new Error(
-          `Cruiseline "${customer}" is missing config (config.json/layout). Did you scaffold customers/${customer}/?`,
-        );
-      }
+      const customer = bundledConfig.runtime.customer;
 
       // Bundled config is the fallback default; the head-end override (if any)
       // is authoritative and merged on top — so config changes without a rebuild.
-      const merged = await applyRemoteOverride(bundled);
+      const merged = await applyRemoteOverride(bundledConfig);
       const integrations = merged.integrations;
 
       return {
         ...merged.runtime,
         customer,
-        layout: layout as CustomerLayout,
+        layout: bundledLayout,
         platform: {
           ...profile,
           capabilities: {
@@ -163,20 +146,6 @@ function deepMerge(base: unknown, override: unknown): unknown {
     result[key] = key in base ? deepMerge(base[key], value) : value;
   }
   return result;
-}
-
-function indexByCustomer(files: Record<string, unknown>): Record<string, unknown> {
-  const map: Record<string, unknown> = {};
-  for (const [path, mod] of Object.entries(files)) {
-    const parts = path.split("/");
-    const idx = parts.lastIndexOf("customers");
-    const slug = parts[idx + 1];
-    if (!slug) {
-      continue;
-    }
-    map[slug] = (mod as { default: unknown }).default;
-  }
-  return map;
 }
 
 function detectRuntimeCapabilities(): Record<string, boolean> {

@@ -12,7 +12,7 @@ export default defineConfig({
   base: "./",
   cacheDir: "../../node_modules/.vite/apps/lg-tv",
   resolve: {
-    alias: createXtvAliases(workspaceRoot),
+    alias: createXtvAliases(workspaceRoot, process.env.VITE_XTV_CUSTOMER),
   },
   build: {
     outDir: resolve(root, "../../dist/apps/lg-tv"),

@@ -1,8 +1,11 @@
 import { spawnSync } from "node:child_process";
+import { resolveCustomerSlug } from "../customer-slug.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const app = required(args.app, "app");
-const customer = args.customer ?? "demo-hotel";
+// Resolve alias -> slug ONCE here; everything downstream (Vite tenant alias,
+// packager) receives the resolved slug so only one tenant is ever compiled in.
+const customer = resolveCustomerSlug(args.customer);
 const profile = args.profile ?? defaultProfileFor(app);
 const command = args.serve ? "vite" : "vite";
 const devHost = process.env.XTV_DEV_HOST ?? "127.0.0.1";
