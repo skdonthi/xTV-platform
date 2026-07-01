@@ -33,6 +33,7 @@
       "@x-tv/runtime-config": ["libs/runtime-config/src/index.ts"],
       "@x-tv/feature-flags": ["libs/feature-flags/src/index.ts"],
       "@x-tv/themes": ["libs/themes/src/index.ts"],
+      "@x-tv/muting": ["libs/muting/src/index.ts"],
       "@x-tv/tenant/config": ["customers/demo-hotel/config.json"],
       "@x-tv/tenant/layout": ["customers/demo-hotel/layouts/home.json"]
     }

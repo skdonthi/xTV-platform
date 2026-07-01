@@ -5,6 +5,7 @@ import {
   readDeviceInfo,
 } from "@x-tv/diagnostics";
 import { createLayoutRenderer } from "@x-tv/layout";
+import { createAudioController, createMutingController } from "@x-tv/muting";
 import { createNavigationEngine } from "@x-tv/navigation";
 import { type RuntimeConfig, createRuntimeConfigLoader } from "@x-tv/runtime-config";
 import { createServiceGateway } from "@x-tv/service-gateway";
@@ -90,6 +91,22 @@ export async function bootstrapTvPlatform(
     });
   }
 
+  // Muting is a cruiseline feature (flag + head-end socket) whose mechanism is
+  // platform-specific (the audio adapter). The composition root is the only place
+  // that knows both — the controller and adapter never reference each other's world.
+  function connectMuting(): void {
+    const url = runtimeConfig.realtime.mutingUrl;
+    if (!runtimeConfig.features.audioMuting || !url) {
+      return;
+    }
+    const audio = createAudioController(runtimeConfig.platform.platform);
+    const controller = createMutingController(audio);
+    const bus = createWebsocketEventBus();
+    bus.connect(url);
+    controller.start(bus);
+    console.info("xTV muting service connected", { url });
+  }
+
   const runtime: TvPlatformRuntime = {
     appId: options.appId,
     async start() {
@@ -98,6 +115,7 @@ export async function bootstrapTvPlatform(
         diagnostics.mount();
       }
       connectLiveConfig();
+      connectMuting();
       console.info("xTV runtime started", {
         appId: options.appId,
         customer: runtimeConfig.customer,

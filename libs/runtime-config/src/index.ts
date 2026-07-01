@@ -31,7 +31,7 @@ export interface RuntimeConfig {
   platform: PlatformProfile;
   services: ServiceGatewayConfig;
   keymapOverride: KeymapConfig;
-  realtime: { websocketUrl?: string };
+  realtime: { websocketUrl?: string; mutingUrl?: string };
 }
 
 export interface RuntimeConfigLoader {
@@ -107,7 +107,10 @@ export function createRuntimeConfigLoader(options: {
           },
         } as ServiceGatewayConfig,
         keymapOverride: merged.keymap ?? { actions: {} },
-        realtime: { websocketUrl: integrations.websocket?.url },
+        realtime: {
+          websocketUrl: integrations.websocket?.url,
+          mutingUrl: integrations.mutingService?.url,
+        },
       };
     },
   };

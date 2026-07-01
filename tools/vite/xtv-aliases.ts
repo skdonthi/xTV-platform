@@ -32,5 +32,6 @@ export function createXtvAliases(
     "@x-tv/runtime-config": resolve(workspaceRoot, "libs/runtime-config/src/index.ts"),
     "@x-tv/feature-flags": resolve(workspaceRoot, "libs/feature-flags/src/index.ts"),
     "@x-tv/themes": resolve(workspaceRoot, "libs/themes/src/index.ts"),
+    "@x-tv/muting": resolve(workspaceRoot, "libs/muting/src/index.ts"),
   };
 }

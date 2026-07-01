@@ -1,0 +1,7 @@
+{
+  "name": "muting",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/muting/src",
+  "tags": ["scope:platform", "type:feature"]
+}
