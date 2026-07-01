@@ -39,7 +39,7 @@ A build is one **cell**: `nx build samsung --customer=ccl --profile=tizen6`.
 | `platforms/<platform>/` | Packaging inputs: `profiles/*.json` (capabilities) + `templates/` (container manifests). **Not app code.** |
 | `customers/<slug>/` | Per-cruiseline content: `config.json` (sectioned), `layouts/`, `i18n/`, `assets/`. |
 | `tools/` | Build tooling: `executors/build-tv.mjs`, `packaging/` (package-tv, signing, customer-slug), `vite/xtv-aliases.ts`. |
-| `docs/` | `signing.md` (manual signing), `DEV-PLAYBOOK.md` (skills/workflow). |
+| `docs/` | `signing.md` (manual signing), `config-hot-reload.md` (live config, no reboot), `DEV-PLAYBOOK.md` (skills/workflow). |
 | `signing/` | `signing.example.json` (template). Real creds in gitignored `.signing.local.json`. |
 
 ### Key libs
@@ -83,7 +83,7 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 3. **Hot reload, no TV reboot** — head-end pushes `{type:"config.updated"}` on the
    tenant websocket → re-pull + re-render in place. Soft `location.reload()` fallback.
    (Keymap changes currently need the soft reload; layout/theme/features/endpoints
-   apply hot.)
+   apply hot.) Full mechanism: `docs/config-hot-reload.md`.
 4. **Per-brand isolation (GDPR) — CRITICAL.** Each build compiles in **exactly one**
    tenant. The slug is resolved **build-time only** (`tools/packaging/customer-slug.mjs`,
    never bundled); Vite aliases `@x-tv/tenant/{config,layout}` to that one tenant's

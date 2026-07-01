@@ -77,7 +77,7 @@ Each tenant has one sectioned `customers/<slug>/config.json` (`runtime` /
 `integrations.configUrl` from the head-end and **deep-merges it over** the bundled
 config — so config changes ship **without a rebuild**. A `{"type":"config.updated"}`
 websocket push triggers a **hot re-apply** (re-render in place, no TV reboot; soft
-reload fallback).
+reload fallback). Full mechanism: **[docs/config-hot-reload.md](docs/config-hot-reload.md)**.
 
 New behavior ships config-first: register a widget in `libs/widget-registry`,
 reference it in the tenant layout (`node.feature` gates it by flag), deliver config.
