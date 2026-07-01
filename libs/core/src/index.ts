@@ -1,16 +1,16 @@
+import Blits from "@lightningjs/blits";
 import {
   captureConsoleLogs,
   createDiagnosticsOverlay,
   createLogBuffer,
   readDeviceInfo,
 } from "@x-tv/diagnostics";
-import { createLayoutRenderer } from "@x-tv/layout";
 import { createAudioController, createMutingController } from "@x-tv/muting";
-import { createNavigationEngine } from "@x-tv/navigation";
-import { type RuntimeConfig, createRuntimeConfigLoader } from "@x-tv/runtime-config";
+import { createRuntimeConfigLoader } from "@x-tv/runtime-config";
 import { createServiceGateway } from "@x-tv/service-gateway";
 import { createWebsocketEventBus } from "@x-tv/websocket";
-import { createDefaultWidgetRegistry } from "@x-tv/widget-registry";
+import App from "./app";
+import { setBootConfig } from "./boot-config";
 
 export type PlatformId = "samsung" | "lg" | "android";
 
@@ -36,7 +36,7 @@ export async function bootstrapTvPlatform(
     platformId: options.platformId,
     defaultProfile: options.defaultProfile,
   });
-  let runtimeConfig = await loader.load();
+  const runtimeConfig = await loader.load();
   const deviceInfo = readDeviceInfo({
     appId: options.appId,
     customer: runtimeConfig.customer,
@@ -48,34 +48,16 @@ export async function bootstrapTvPlatform(
     logBuffer,
     config: runtimeConfig.diagnostics,
   });
-  const registry = createDefaultWidgetRegistry();
-  // ONE navigation engine + renderer for the app's lifetime. Re-rendering reuses
-  // them; the keymap is hot-swapped via setKeymap so a config change can remap the
-  // remote with no reboot and no leaked listener.
-  const navigation = createNavigationEngine({
-    platform: runtimeConfig.platform.platform,
-    keymapOverride: runtimeConfig.keymapOverride,
-  });
-  const renderer = createLayoutRenderer({ registry, navigation });
 
-  // Renders the whole tree from a config snapshot. Called at boot and again on
-  // every hot config apply — the renderer clears #app, navigation.attach is
-  // idempotent, and setKeymap swaps the remote mapping live.
-  async function applyAndRender(config: RuntimeConfig): Promise<void> {
-    const services = createServiceGateway(config.services);
-    const activeLayout = await services.layout.getActiveLayout(config.layout);
-    navigation.setKeymap(config.keymapOverride);
-    await renderer.render(activeLayout, {
-      customer: config.customer,
-      locale: config.locale,
-      platform: config.platform.platform,
-      theme: config.theme,
-      features: config.features,
-    });
-  }
+  // Resolve the active layout (local or head-end/remote) and hand the config to
+  // the Blits app via the boot-config bridge.
+  const services = createServiceGateway(runtimeConfig.services);
+  runtimeConfig.layout = await services.layout.getActiveLayout(runtimeConfig.layout);
+  setBootConfig(runtimeConfig);
 
-  // Head-end can push {"type":"config.updated"} to re-pull config and hot-apply
-  // it with NO TV reboot. Falls back to a soft reload if re-apply throws.
+  // Head-end can push {"type":"config.updated"} to re-pull config. With the Blits
+  // canvas we soft-reload to re-launch (Blits-reactive in-place hot-apply — update
+  // app state instead of reload — is the next step).
   function connectLiveConfig(): void {
     const wsUrl = runtimeConfig.realtime.websocketUrl;
     if (!runtimeConfig.features.websocketEvents || !wsUrl) {
@@ -83,15 +65,9 @@ export async function bootstrapTvPlatform(
     }
     const bus = createWebsocketEventBus();
     bus.connect(wsUrl);
-    bus.on("config.updated", async () => {
-      try {
-        runtimeConfig = await loader.load();
-        await applyAndRender(runtimeConfig);
-        console.info("xTV config hot-applied");
-      } catch (error) {
-        console.warn("Hot config apply failed; falling back to soft reload.", error);
-        globalThis.location?.reload();
-      }
+    bus.on("config.updated", () => {
+      console.info("xTV config.updated — reloading");
+      globalThis.location?.reload();
     });
   }
 
@@ -114,7 +90,8 @@ export async function bootstrapTvPlatform(
   const runtime: TvPlatformRuntime = {
     appId: options.appId,
     async start() {
-      await applyAndRender(runtimeConfig);
+      // Launch the Blits (LightningJS canvas) app into #app.
+      Blits.Launch(App, "app", { w: 1920, h: 1080, debugLevel: 1 });
       if (runtimeConfig.diagnostics.enabled) {
         diagnostics.mount();
       }

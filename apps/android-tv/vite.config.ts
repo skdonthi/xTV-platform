@@ -1,5 +1,6 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import blits from "@lightningjs/blits/vite";
 import { defineConfig } from "vite";
 import { createXtvAliases } from "../../tools/vite/xtv-aliases";
 
@@ -11,6 +12,7 @@ export default defineConfig({
   // Relative base so bundle assets resolve under file:///android_asset/.
   base: "./",
   cacheDir: "../../node_modules/.vite/apps/android-tv",
+  plugins: [...blits],
   resolve: {
     alias: createXtvAliases(workspaceRoot, process.env.VITE_XTV_CUSTOMER),
   },

@@ -99,6 +99,15 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 7. **Ports & adapters** for platform capabilities (see `libs/muting`): a
    platform-agnostic controller depends on an interface; each platform supplies an
    adapter. Add a platform = new adapter, controller untouched.
+8. **UI render layer = Blits** (`@lightningjs/blits`, LightningJS canvas). `libs/core`
+   `Blits.Launch(App, "app", …)` mounts the root Blits Application (`libs/core/src/app.ts`);
+   widgets are Blits components (`libs/widgets/src/components/*.component.ts`). The old
+   DOM `layout`/`widget-registry` path is retained (still typechecks, feeds the
+   `CustomerLayout` type) but is **not** the render path — it will be reworked into a
+   Blits-native dynamic layout engine. **Transitional:** the foundation renders one
+   known widget (hero) from config; fully config-driven multi-widget + feature-gated
+   Blits layout, keymap→Blits input, and Blits-reactive hot-apply (currently a soft
+   reload) are follow-ups.
 
 ## How to…
 
@@ -126,6 +135,15 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 - **LG/Android per-cruiseline certs** are procurement-pending; the pluggable design
   keeps builds green meanwhile.
 - On this dev Mac: `tizen` + `ares-package` are installed, `gradle` is not.
+- **Blits build quirks:** (a) never put `.blits.` in a `.ts` filename — the Blits
+  Vite converter treats the import as a `.blits` SFC and fails; name Blits component
+  files `*.component.ts`. (b) each `apps/<p>-tv/` needs a `public/` dir (Blits'
+  msdfGenerator scans it) — keep the `.gitkeep`. (c) Blits' Vite plugin is the
+  **default array export** of `@lightningjs/blits/vite` — spread it: `plugins: [...blits]`.
+- **Tizen firmware SDK is runtime-injected**, not a static `index.html` tag —
+  `apps/samsung-tv/src/main.ts` appends the `$WEBAPIS/$B2BAPIS` scripts before
+  bootstrap (static tags can't be bundled by Vite). Guarded adapters fall back if
+  absent.
 - **Platform SDK globals are firmware-provided, not vendored.** `apps/samsung-tv/index.html`
   loads Tizen `webapis.js` / `avplayextension.js` / `b2bapis.js` via `$WEBAPIS`/`$B2BAPIS`
   script tags (resolved on-device; 404 harmlessly in a browser). LG uses the

@@ -1,12 +1,8 @@
 <!--
-  Tizen firmware SDK globals. Classic (non-module) scripts run before the deferred
-  module bundle, so webapis.avplay / tizen.tvaudiocontrol exist at bootstrap. The
-  $WEBAPIS / $B2BAPIS tokens are resolved by the TV at runtime; in a browser they
-  404 harmlessly and the adapters fall back. Samsung only — LG uses firmware HCAP,
-  Android uses the native bridge.
+  Tizen firmware SDK globals (webapis.js / avplayextension.js / b2bapis.js at
+  $WEBAPIS / $B2BAPIS) are injected at RUNTIME by the Samsung entry before the
+  Blits app boots — static tags here can't be bundled by Vite (unresolvable
+  tokens). See apps/samsung-tv/src/main.ts.
 -->
-<script src="$WEBAPIS/webapis/webapis.js"></script>
-<script src="$WEBAPIS/avplayextension/avplayextension.js"></script>
-<script src="$B2BAPIS/b2bapis/b2bapis.js"></script>
 <div id="app"></div>
 <script type="module" src="/src/main.ts"></script>
