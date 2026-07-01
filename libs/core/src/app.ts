@@ -1,33 +1,24 @@
 import Blits from "@lightningjs/blits";
-import type { CustomerLayout } from "@x-tv/layout";
 import { cclTheme } from "@x-tv/themes";
-import { HeroBanner } from "@x-tv/widgets";
+import { HelloWorld } from "@x-tv/widgets";
 import { getBootConfig } from "./boot-config";
 
-// Root Blits Application. Reads the resolved tenant config once and renders the
-// hero from the active layout. This is the foundation: a single known widget.
-// The fully config-driven, feature-gated, multi-widget Blits layout engine
-// (porting @x-tv/layout to resolve widgets by type) is the next step.
+// Root Blits Application. For now it renders a Hello World screen so a build
+// (.wgt / .ipk / .apk) can be signed and deployed to a real TV to confirm the
+// end-to-end pipeline. The caption echoes the baked-in tenant + platform.
+// Next: a config-driven, feature-gated multi-widget layout engine.
 export default Blits.Application({
-  components: { HeroBanner },
+  components: { HelloWorld },
   template: `
     <Element w="1920" h="1080" color="$background">
-      <HeroBanner title="$title" subtitle="$subtitle" background="$background" />
+      <HelloWorld background="$background" caption="$caption" />
     </Element>
   `,
   state() {
     const config = getBootConfig();
-    const hero = findHeroProps(config.layout);
     return {
-      title: hero.title,
-      subtitle: hero.subtitle,
       background: cclTheme.colors.background,
+      caption: `${config.customer} · ${config.platform.platform} · ${config.platform.id}`,
     };
   },
 });
-
-function findHeroProps(layout: CustomerLayout): { title: string; subtitle: string } {
-  const node = layout.root.children?.find((child) => child.widget === "hero-banner");
-  const props = (node?.props ?? {}) as { title?: string; subtitle?: string };
-  return { title: props.title ?? "", subtitle: props.subtitle ?? "" };
-}
