@@ -56,27 +56,36 @@ export function createNavigationEngine(options: NavigationEngineOptions = {}): N
   const base = BASE_KEYMAPS[options.platform ?? ""] ?? { actions: {} };
   const keymap = mergeKeymaps(base, options.keymapOverride);
   const lookup = buildLookup(keymap);
+  // Idempotent: re-attaching (e.g. after a hot config re-render) cancels the
+  // previous listener instead of stacking a duplicate.
+  let controller: AbortController | undefined;
 
   return {
     attach(root) {
-      root.addEventListener("keydown", (event) => {
-        if (!(event instanceof KeyboardEvent)) {
-          return;
-        }
+      controller?.abort();
+      controller = new AbortController();
+      root.addEventListener(
+        "keydown",
+        (event) => {
+          if (!(event instanceof KeyboardEvent)) {
+            return;
+          }
 
-        const action = resolveAction(event, lookup);
-        if (!action) {
-          return;
-        }
+          const action = resolveAction(event, lookup);
+          if (!action) {
+            return;
+          }
 
-        if (PREVENT_DEFAULT_ACTIONS.has(action)) {
-          event.preventDefault();
-        }
+          if (PREVENT_DEFAULT_ACTIONS.has(action)) {
+            event.preventDefault();
+          }
 
-        // App code listens for "xtv:action" instead of raw key events, so a new
-        // cruiseline remote is a config change, never a code change.
-        root.dispatchEvent(new CustomEvent("xtv:action", { detail: { action }, bubbles: true }));
-      });
+          // App code listens for "xtv:action" instead of raw key events, so a
+          // new cruiseline remote is a config change, never a code change.
+          root.dispatchEvent(new CustomEvent("xtv:action", { detail: { action }, bubbles: true }));
+        },
+        { signal: controller.signal },
+      );
     },
   };
 }

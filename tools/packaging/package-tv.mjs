@@ -291,14 +291,14 @@ async function copyIconOrPlaceholder(destPath, name) {
 }
 
 function readTenantIdentity(customer) {
-  const path = resolve(workspaceRoot, "customers", customer, "config/app-identity.json");
+  const path = resolve(workspaceRoot, "customers", customer, "config.json");
   if (!existsSync(path)) {
     return {};
   }
   try {
-    return JSON.parse(readFileSync(path, "utf8"));
+    return JSON.parse(readFileSync(path, "utf8")).identity ?? {};
   } catch (error) {
-    console.warn(`Could not parse app-identity.json for ${customer}: ${error.message}`);
+    console.warn(`Could not parse config.json for ${customer}: ${error.message}`);
     return {};
   }
 }

@@ -6,8 +6,9 @@ import {
 } from "@x-tv/diagnostics";
 import { createLayoutRenderer } from "@x-tv/layout";
 import { createNavigationEngine } from "@x-tv/navigation";
-import { createRuntimeConfigLoader } from "@x-tv/runtime-config";
+import { type RuntimeConfig, createRuntimeConfigLoader } from "@x-tv/runtime-config";
 import { createServiceGateway } from "@x-tv/service-gateway";
+import { createWebsocketEventBus } from "@x-tv/websocket";
 import { createDefaultWidgetRegistry } from "@x-tv/widget-registry";
 
 export type PlatformId = "samsung" | "lg" | "android";
@@ -34,7 +35,7 @@ export async function bootstrapTvPlatform(
     platformId: options.platformId,
     defaultProfile: options.defaultProfile,
   });
-  const runtimeConfig = await loader.load();
+  let runtimeConfig = await loader.load();
   const deviceInfo = readDeviceInfo({
     appId: options.appId,
     customer: runtimeConfig.customer,
@@ -46,28 +47,57 @@ export async function bootstrapTvPlatform(
     logBuffer,
     config: runtimeConfig.diagnostics,
   });
-  const services = createServiceGateway(runtimeConfig.services);
-  const activeLayout = await services.layout.getActiveLayout(runtimeConfig.layout);
-  const navigation = createNavigationEngine({
-    platform: runtimeConfig.platform.platform,
-    keymapOverride: runtimeConfig.keymapOverride,
-  });
   const registry = createDefaultWidgetRegistry();
-  const renderer = createLayoutRenderer({ registry, navigation });
+
+  // Renders the whole tree from a config snapshot. Called at boot and again on
+  // every hot config apply — the renderer clears #app and navigation.attach is
+  // idempotent, so re-running it live-updates layout/theme/features in place.
+  async function applyAndRender(config: RuntimeConfig): Promise<void> {
+    const services = createServiceGateway(config.services);
+    const activeLayout = await services.layout.getActiveLayout(config.layout);
+    const navigation = createNavigationEngine({
+      platform: config.platform.platform,
+      keymapOverride: config.keymapOverride,
+    });
+    const renderer = createLayoutRenderer({ registry, navigation });
+    await renderer.render(activeLayout, {
+      customer: config.customer,
+      locale: config.locale,
+      platform: config.platform.platform,
+      theme: config.theme,
+      features: config.features,
+    });
+  }
+
+  // Head-end can push {"type":"config.updated"} to re-pull config and hot-apply
+  // it with NO TV reboot. Falls back to a soft reload if re-apply throws.
+  function connectLiveConfig(): void {
+    const wsUrl = runtimeConfig.realtime.websocketUrl;
+    if (!runtimeConfig.features.websocketEvents || !wsUrl) {
+      return;
+    }
+    const bus = createWebsocketEventBus();
+    bus.connect(wsUrl);
+    bus.on("config.updated", async () => {
+      try {
+        runtimeConfig = await loader.load();
+        await applyAndRender(runtimeConfig);
+        console.info("xTV config hot-applied");
+      } catch (error) {
+        console.warn("Hot config apply failed; falling back to soft reload.", error);
+        globalThis.location?.reload();
+      }
+    });
+  }
 
   const runtime: TvPlatformRuntime = {
     appId: options.appId,
     async start() {
-      await renderer.render(activeLayout, {
-        customer: runtimeConfig.customer,
-        locale: runtimeConfig.locale,
-        platform: runtimeConfig.platform.platform,
-        theme: runtimeConfig.theme,
-        features: runtimeConfig.features,
-      });
+      await applyAndRender(runtimeConfig);
       if (runtimeConfig.diagnostics.enabled) {
         diagnostics.mount();
       }
+      connectLiveConfig();
       console.info("xTV runtime started", {
         appId: options.appId,
         customer: runtimeConfig.customer,

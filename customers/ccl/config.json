@@ -1,0 +1,61 @@
+{
+  "runtime": {
+    "customer": "ccl",
+    "locale": "en",
+    "theme": "ccl-red",
+    "features": {
+      "remoteLayouts": true,
+      "websocketEvents": true,
+      "roomMessaging": true,
+      "nativePlayback": true,
+      "audioMuting": true
+    },
+    "diagnostics": {
+      "enabled": true,
+      "pin": "2580",
+      "pinTimeoutMs": 5000,
+      "developerShortcuts": true
+    }
+  },
+  "integrations": {
+    "runtime": {
+      "customerId": "ccl",
+      "layoutSource": "liferay",
+      "contentSource": "liferay"
+    },
+    "liferayApi": {
+      "baseUrl": "https://portal.ccl.example.invalid/",
+      "siteId": "ccl"
+    },
+    "remoteControlApi": {
+      "baseUrl": "https://rc.ccl.example.invalid/api/",
+      "deviceId": "ccl-cabin"
+    },
+    "configUrl": "https://headend.ccl.example.invalid/config/ccl.json",
+    "websocket": {
+      "url": "wss://events.ccl.example.invalid/ws"
+    },
+    "mutingService": {
+      "url": "wss://mute.ccl.example.invalid/ws",
+      "channel": "cabin-audio"
+    }
+  },
+  "identity": {
+    "samsung": {
+      "appId": "https://xcontrol.de/ccl",
+      "tizenAppId": "Cclxc00001.CCL",
+      "package": "Cclxc00001"
+    },
+    "lg": {
+      "appId": "com.xcontrol.ccl.webos"
+    },
+    "android": {
+      "applicationId": "com.xcontrol.ccl"
+    }
+  },
+  "keymap": {
+    "actions": {
+      "back": ["XF86Back", 10009, "Backspace"]
+    }
+  }
+}

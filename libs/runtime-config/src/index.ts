@@ -26,24 +26,34 @@ export interface RuntimeConfig {
   platform: PlatformProfile;
   services: ServiceGatewayConfig;
   keymapOverride: KeymapConfig;
+  realtime: { websocketUrl?: string };
 }
 
 export interface RuntimeConfigLoader {
   load(): Promise<RuntimeConfig>;
 }
 
+// The single sectioned tenant document (customers/<line>/config.json).
+interface TenantIntegrations extends ServiceGatewayConfig {
+  websocket?: { url: string } | null;
+  mutingService?: { url: string; channel?: string } | null;
+  // Head-end URL for the authoritative config override fetched at boot.
+  configUrl?: string | null;
+}
+
+interface TenantConfigFile {
+  runtime: Omit<RuntimeConfig, "layout" | "platform" | "services" | "keymapOverride" | "realtime">;
+  integrations: TenantIntegrations;
+  identity?: unknown;
+  keymap?: KeymapConfig;
+}
+
 // Cruiseline axis: every tenant under customers/ is discovered at build time.
-// Adding a new cruiseline = a new customers/<slug>/ folder, no loader edits.
-const runtimeFiles = import.meta.glob("../../../customers/*/config/runtime.json", { eager: true });
-const integrationFiles = import.meta.glob("../../../customers/*/config/integrations.json", {
-  eager: true,
-});
-const keymapFiles = import.meta.glob("../../../customers/*/config/keymap.json", { eager: true });
+// Adding a new cruiseline = a new customers/<slug>/config.json, no loader edits.
+const configFiles = import.meta.glob("../../../customers/*/config.json", { eager: true });
 const layoutFiles = import.meta.glob("../../../customers/*/layouts/home.json", { eager: true });
 
-const runtimeByCustomer = indexByCustomer(runtimeFiles);
-const integrationsByCustomer = indexByCustomer(integrationFiles);
-const keymapByCustomer = indexByCustomer(keymapFiles);
+const configByCustomer = indexByCustomer(configFiles);
 const layoutByCustomer = indexByCustomer(layoutFiles);
 
 // Provisioning aliases: head-end identifiers map to a tenant slug.
@@ -81,21 +91,22 @@ export function createRuntimeConfigLoader(options: {
         );
       }
 
-      const runtime = runtimeByCustomer[customer];
-      const integrations = integrationsByCustomer[customer];
+      const bundled = configByCustomer[customer] as TenantConfigFile | undefined;
       const layout = layoutByCustomer[customer];
 
-      if (!runtime || !integrations || !layout) {
+      if (!bundled || !layout) {
         throw new Error(
-          `Cruiseline "${customer}" is missing config (runtime/integrations/layout). Did you scaffold customers/${customer}/?`,
+          `Cruiseline "${customer}" is missing config (config.json/layout). Did you scaffold customers/${customer}/?`,
         );
       }
 
+      // Bundled config is the fallback default; the head-end override (if any)
+      // is authoritative and merged on top — so config changes without a rebuild.
+      const merged = await applyRemoteOverride(bundled);
+      const integrations = merged.integrations;
+
       return {
-        ...(runtime as Omit<
-          RuntimeConfig,
-          "customer" | "layout" | "platform" | "services" | "keymapOverride"
-        >),
+        ...merged.runtime,
         customer,
         layout: layout as CustomerLayout,
         platform: {
@@ -108,14 +119,50 @@ export function createRuntimeConfigLoader(options: {
         services: {
           ...(integrations as ServiceGatewayConfig),
           runtime: {
-            ...(integrations as ServiceGatewayConfig).runtime,
+            ...integrations.runtime,
             customerId: customer,
           },
         } as ServiceGatewayConfig,
-        keymapOverride: (keymapByCustomer[customer] as KeymapConfig | undefined) ?? { actions: {} },
+        keymapOverride: merged.keymap ?? { actions: {} },
+        realtime: { websocketUrl: integrations.websocket?.url },
       };
     },
   };
+}
+
+async function applyRemoteOverride(bundled: TenantConfigFile): Promise<TenantConfigFile> {
+  const url = bundled.integrations?.configUrl;
+  if (!url || typeof fetch === "undefined") {
+    return bundled;
+  }
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const remote = (await response.json()) as Partial<TenantConfigFile>;
+    return deepMerge(bundled, remote) as TenantConfigFile;
+  } catch (error) {
+    console.warn(`Remote config fetch failed (${url}); using bundled defaults.`, error);
+    return bundled;
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Recursive merge: override scalars/arrays replace, nested objects merge.
+function deepMerge(base: unknown, override: unknown): unknown {
+  if (!isPlainObject(base) || !isPlainObject(override)) {
+    return override ?? base;
+  }
+  const result: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    result[key] = key in base ? deepMerge(base[key], value) : value;
+  }
+  return result;
 }
 
 function indexByCustomer(files: Record<string, unknown>): Record<string, unknown> {

@@ -1,0 +1,57 @@
+{
+  "runtime": {
+    "customer": "demo-hotel",
+    "locale": "en",
+    "theme": "demo-hotel-dark",
+    "features": {
+      "remoteLayouts": true,
+      "websocketEvents": true,
+      "roomMessaging": true,
+      "nativePlayback": true,
+      "audioMuting": false
+    },
+    "diagnostics": {
+      "enabled": true,
+      "pin": "2580",
+      "pinTimeoutMs": 5000,
+      "developerShortcuts": true
+    }
+  },
+  "integrations": {
+    "runtime": {
+      "customerId": "demo-hotel",
+      "layoutSource": "local",
+      "contentSource": "local"
+    },
+    "xmmApi": {
+      "baseUrl": "https://xmm.example.invalid/api/",
+      "tenantId": "demo-hotel"
+    },
+    "liferayApi": {
+      "baseUrl": "https://liferay.example.invalid/",
+      "siteId": "demo-hotel"
+    },
+    "remoteControlApi": {
+      "baseUrl": "https://remote-control.example.invalid/api/",
+      "deviceId": "local-preview"
+    },
+    "configUrl": null,
+    "websocket": null
+  },
+  "identity": {
+    "samsung": {
+      "appId": "https://xcontrol.de/demo-hotel",
+      "tizenAppId": "xTVdemo001.DemoHotel",
+      "package": "xTVdemo001"
+    },
+    "lg": {
+      "appId": "com.xcontrol.demohotel.webos"
+    },
+    "android": {
+      "applicationId": "com.xcontrol.demohotel"
+    }
+  },
+  "keymap": {
+    "actions": {}
+  }
+}

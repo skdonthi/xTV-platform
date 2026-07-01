@@ -1,4 +1,0 @@
-{
-  "_comment": "Per-cruiseline remote keymap OVERRIDE. Merged on top of the platform base keymap (see libs/navigation). Each action maps to one or more key identifiers: KeyboardEvent.key, KeyboardEvent.code, or a numeric keyCode (for legacy TV remotes).",
-  "actions": {}
-}
