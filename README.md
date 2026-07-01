@@ -91,6 +91,13 @@ aliases `@x-tv/tenant/*` to that one tenant's files. A CCL bundle contains **zer
 tokens from any other brand. **Never** reintroduce `import.meta.glob("customers/*")`
 or a tenant alias map in shipped `libs/` — that leaks rival brands into an artifact.
 
+## State & storage
+
+Component state (Blits `state()`), global reactive state (Blits `appState` →
+`this.$appState`), device-local persistence (`@x-tv/storage` — namespaced
+localStorage with in-memory fallback), and durable state (head-end via
+service-gateway). Details + decision guide: **[docs/state-and-storage.md](docs/state-and-storage.md)**.
+
 ## TV diagnostics
 
 The runtime mounts a diagnostics overlay (platform, profile, customer, device
