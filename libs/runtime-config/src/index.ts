@@ -1,8 +1,6 @@
 import type { CustomerLayout } from "@x-tv/layout";
+import type { KeymapConfig } from "@x-tv/navigation";
 import type { ServiceGatewayConfig } from "@x-tv/service-gateway";
-import demoHotelIntegrations from "../../../customers/demo-hotel/config/integrations.json";
-import demoHotelRuntime from "../../../customers/demo-hotel/config/runtime.json";
-import demoHotelLayout from "../../../customers/demo-hotel/layouts/home.json";
 import androidTv12 from "../../../platforms/android/profiles/android-tv-12.json";
 import webos6 from "../../../platforms/lg/profiles/webos6.json";
 import tizen6 from "../../../platforms/samsung/profiles/tizen6.json";
@@ -27,16 +25,33 @@ export interface RuntimeConfig {
   layout: CustomerLayout;
   platform: PlatformProfile;
   services: ServiceGatewayConfig;
+  keymapOverride: KeymapConfig;
 }
 
 export interface RuntimeConfigLoader {
   load(): Promise<RuntimeConfig>;
 }
 
+// Cruiseline axis: every tenant under customers/ is discovered at build time.
+// Adding a new cruiseline = a new customers/<slug>/ folder, no loader edits.
+const runtimeFiles = import.meta.glob("../../../customers/*/config/runtime.json", { eager: true });
+const integrationFiles = import.meta.glob("../../../customers/*/config/integrations.json", {
+  eager: true,
+});
+const keymapFiles = import.meta.glob("../../../customers/*/config/keymap.json", { eager: true });
+const layoutFiles = import.meta.glob("../../../customers/*/layouts/home.json", { eager: true });
+
+const runtimeByCustomer = indexByCustomer(runtimeFiles);
+const integrationsByCustomer = indexByCustomer(integrationFiles);
+const keymapByCustomer = indexByCustomer(keymapFiles);
+const layoutByCustomer = indexByCustomer(layoutFiles);
+
+// Provisioning aliases: head-end identifiers map to a tenant slug.
 const customerAliases: Record<string, string> = {
-  AIDA: "demo-hotel",
+  AIDA: "aida",
+  CCL: "ccl",
+  CARNIVAL: "ccl",
   DEMO_HOTEL: "demo-hotel",
-  "demo-hotel": "demo-hotel",
 };
 
 const platformProfiles: Record<string, PlatformProfile> = {
@@ -66,10 +81,23 @@ export function createRuntimeConfigLoader(options: {
         );
       }
 
+      const runtime = runtimeByCustomer[customer];
+      const integrations = integrationsByCustomer[customer];
+      const layout = layoutByCustomer[customer];
+
+      if (!runtime || !integrations || !layout) {
+        throw new Error(
+          `Cruiseline "${customer}" is missing config (runtime/integrations/layout). Did you scaffold customers/${customer}/?`,
+        );
+      }
+
       return {
-        ...demoHotelRuntime,
+        ...(runtime as Omit<
+          RuntimeConfig,
+          "customer" | "layout" | "platform" | "services" | "keymapOverride"
+        >),
         customer,
-        layout: demoHotelLayout as CustomerLayout,
+        layout: layout as CustomerLayout,
         platform: {
           ...profile,
           capabilities: {
@@ -78,15 +106,30 @@ export function createRuntimeConfigLoader(options: {
           },
         },
         services: {
-          ...demoHotelIntegrations,
+          ...(integrations as ServiceGatewayConfig),
           runtime: {
-            ...demoHotelIntegrations.runtime,
+            ...(integrations as ServiceGatewayConfig).runtime,
             customerId: customer,
           },
         } as ServiceGatewayConfig,
+        keymapOverride: (keymapByCustomer[customer] as KeymapConfig | undefined) ?? { actions: {} },
       };
     },
   };
+}
+
+function indexByCustomer(files: Record<string, unknown>): Record<string, unknown> {
+  const map: Record<string, unknown> = {};
+  for (const [path, mod] of Object.entries(files)) {
+    const parts = path.split("/");
+    const idx = parts.lastIndexOf("customers");
+    const slug = parts[idx + 1];
+    if (!slug) {
+      continue;
+    }
+    map[slug] = (mod as { default: unknown }).default;
+  }
+  return map;
 }
 
 function detectRuntimeCapabilities(): Record<string, boolean> {

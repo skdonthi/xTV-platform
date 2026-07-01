@@ -1,0 +1,13 @@
+{
+  "samsung": {
+    "appId": "https://xcontrol.de/aida",
+    "tizenAppId": "Aidaxc0001.AIDA",
+    "package": "Aidaxc0001"
+  },
+  "lg": {
+    "appId": "com.xcontrol.aida.webos"
+  },
+  "android": {
+    "applicationId": "com.xcontrol.aida"
+  }
+}

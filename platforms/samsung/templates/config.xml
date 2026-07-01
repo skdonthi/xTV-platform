@@ -10,7 +10,18 @@
   <icon src="icon.png" />
   <name>{{DISPLAY_NAME}}</name>
   <tizen:profile name="tv-samsung" />
+  <!--
+    CRITICAL: Tizen strips inline <script>/<style> under its default CSP, which
+    silently blanks the app on real hardware (installs fine, never boots). This
+    permissive policy is THE fix learned on CCL. Do not remove.
+  -->
+  <tizen:content-security-policy>default-src * data: blob: file: filesystem: 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: file:; font-src * data: file:; connect-src *;</tizen:content-security-policy>
+  <access origin="*" subdomains="true" />
+  <tizen:allow-navigation>*</tizen:allow-navigation>
   <tizen:privilege name="http://tizen.org/privilege/internet" />
   <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice" />
+  <tizen:privilege name="http://tizen.org/privilege/tv.audio" />
+  <tizen:privilege name="http://tizen.org/privilege/volume.set" />
+{{PARTNER_PRIVILEGES}}
   <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable" />
 </widget>

@@ -8,6 +8,8 @@ const workspaceRoot = resolve(root, "../..");
 
 export default defineConfig({
   root,
+  // Relative base so bundle assets resolve under file:///android_asset/.
+  base: "./",
   cacheDir: "../../node_modules/.vite/apps/android-tv",
   resolve: {
     alias: createXtvAliases(workspaceRoot),

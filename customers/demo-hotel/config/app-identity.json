@@ -1,0 +1,13 @@
+{
+  "samsung": {
+    "appId": "https://xcontrol.de/demo-hotel",
+    "tizenAppId": "xTVdemo001.DemoHotel",
+    "package": "xTVdemo001"
+  },
+  "lg": {
+    "appId": "com.xcontrol.demohotel.webos"
+  },
+  "android": {
+    "applicationId": "com.xcontrol.demohotel"
+  }
+}

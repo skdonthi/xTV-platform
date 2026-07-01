@@ -1,0 +1,7 @@
+{
+  "_comment": "AIDA physical remote overrides. Their hospitality remote exposes a dedicated TV button and a back key with a non-standard code.",
+  "actions": {
+    "watchTv": ["ChannelUp", 427],
+    "back": ["XF86Back", 10009, "Backspace"]
+  }
+}

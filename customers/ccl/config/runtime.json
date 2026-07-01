@@ -1,0 +1,18 @@
+{
+  "customer": "ccl",
+  "locale": "en",
+  "theme": "ccl-red",
+  "features": {
+    "remoteLayouts": true,
+    "websocketEvents": true,
+    "roomMessaging": true,
+    "nativePlayback": true,
+    "audioMuting": true
+  },
+  "diagnostics": {
+    "enabled": true,
+    "pin": "2580",
+    "pinTimeoutMs": 5000,
+    "developerShortcuts": true
+  }
+}

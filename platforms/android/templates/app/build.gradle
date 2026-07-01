@@ -14,4 +14,25 @@ android {
     versionCode {{VERSION_CODE}}
     versionName "{{VERSION}}"
   }
+
+  // Cert-pluggable: signing properties are injected by tools/packaging only when
+  // a keystore is resolved for this cruiseline. Absent them, the release build is
+  // unsigned (build still succeeds) and the packager prints a loud warning.
+  signingConfigs {
+    release {
+      if (project.hasProperty("XTV_KS_FILE")) {
+        storeFile file(project.property("XTV_KS_FILE"))
+        storePassword project.property("XTV_KS_PASS")
+        keyAlias project.property("XTV_KEY_ALIAS")
+        keyPassword project.property("XTV_KEY_PASS")
+      }
+    }
+  }
+
+  buildTypes {
+    release {
+      signingConfig project.hasProperty("XTV_KS_FILE") ? signingConfigs.release : null
+      minifyEnabled false
+    }
+  }
 }

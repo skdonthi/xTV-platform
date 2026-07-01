@@ -1,3 +1,4 @@
+import { isFeatureEnabled } from "@x-tv/feature-flags";
 import type { NavigationEngine } from "@x-tv/navigation";
 import type { WidgetRegistry } from "@x-tv/widget-registry";
 
@@ -9,6 +10,9 @@ export interface LayoutNode {
   widget?: string;
   props?: Record<string, unknown>;
   children?: LayoutNode[];
+  // Optional feature gate: node is rendered only when this flag is on for the
+  // tenant. Lets a cruiseline turn a row/widget on or off from config alone.
+  feature?: string;
 }
 
 export interface CustomerLayout {
@@ -72,6 +76,9 @@ function renderNode(
   element.className = `xtv-layout xtv-layout-${node.type}`;
 
   for (const child of node.children ?? []) {
+    if (child.feature && !isFeatureEnabled(context.features, child.feature)) {
+      continue;
+    }
     element.appendChild(renderNode(child, registry, context));
   }
 

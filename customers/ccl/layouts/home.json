@@ -1,0 +1,20 @@
+{
+  "id": "ccl-home",
+  "version": 1,
+  "root": {
+    "id": "home-screen",
+    "type": "screen",
+    "children": [
+      {
+        "id": "hero",
+        "type": "widget",
+        "widget": "hero-banner",
+        "props": {
+          "title": "Welcome Aboard",
+          "subtitle": "Your in-cabin entertainment hub.",
+          "image": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"
+        }
+      }
+    ]
+  }
+}

@@ -48,7 +48,10 @@ export async function bootstrapTvPlatform(
   });
   const services = createServiceGateway(runtimeConfig.services);
   const activeLayout = await services.layout.getActiveLayout(runtimeConfig.layout);
-  const navigation = createNavigationEngine();
+  const navigation = createNavigationEngine({
+    platform: runtimeConfig.platform.platform,
+    keymapOverride: runtimeConfig.keymapOverride,
+  });
   const registry = createDefaultWidgetRegistry();
   const renderer = createLayoutRenderer({ registry, navigation });
 

@@ -1,0 +1,6 @@
+{
+  "_comment": "Carnival remote overrides.",
+  "actions": {
+    "back": ["XF86Back", 10009, "Backspace"]
+  }
+}

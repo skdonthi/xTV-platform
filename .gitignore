@@ -144,3 +144,6 @@ vite.config.ts.timestamp-*
 
 # Nx
 .nx/
+
+# Signing secrets — never commit cert paths/passwords. Use signing.example.json.
+signing/.signing.local.json
