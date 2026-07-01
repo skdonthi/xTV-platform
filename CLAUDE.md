@@ -47,8 +47,8 @@ A build is one **cell**: `nx build samsung --customer=ccl --profile=tizen6`.
 remote override) · `layout` (server-driven layout + renderer) · `widget-registry`
 · `navigation` (keymap → `xtv:action`) · `muting` (audio muting, ports & adapters)
 · `service-gateway` + `integrations/*` (backend adapters: xmm, liferay,
-remote-control) · `websocket` · `diagnostics` (overlay) · `player` (stub) ·
-`feature-flags` · `themes` · `i18n`.
+remote-control) · `websocket` · `diagnostics` (overlay) · `player` (ports &
+adapters: avplay / Android bridge / HTML5) · `feature-flags` · `themes` · `i18n`.
 
 ## Bootstrap flow (`libs/core/src/index.ts`)
 

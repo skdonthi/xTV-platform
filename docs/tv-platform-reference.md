@@ -71,7 +71,9 @@ native bridge as `"GoBack"` (see `platforms/android/.../MainActivity.kt`).
 | Exterity | `ekioh` | HTML5 `<video>` + `extplugin` | `extplugin.netinterfaces[0].hwaddr` | hardcoded normal |
 | Browser (dev) | fallback | HTML5 `<video>` | mock (`?macid=`) | hardcoded normal |
 
-These map onto our abstractions: the audio adapter (`libs/muting`) already uses
-`tizen.tvaudiocontrol` / luna / native bridge; a future **player adapter**
-(`libs/player`, currently a stub) should wrap `avplay` / `hcap.Media` / ExoPlayer
-per this table, and diagnostics device-info reads MAC via these APIs.
+These map onto our abstractions: the audio adapter (`libs/muting`) uses
+`tizen.tvaudiocontrol` / luna / native bridge; the **player adapter**
+(`libs/player`) wraps `avplay` (Samsung), the Android ExoPlayer bridge, and HTML5
+`<video>` (webOS/browser) behind one `PlayerAdapter` port + `createPlayerAdapter`
+factory. Wire it into a video/live-TV widget when one is added. Diagnostics
+device-info reads MAC via the APIs above.
