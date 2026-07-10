@@ -152,3 +152,5 @@ signing/.signing.local.json
 apps/*/public/
 
 .claude/worktrees
+# Local deploy test artifacts (signed wgts)
+deploy-test/
