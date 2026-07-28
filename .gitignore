@@ -154,3 +154,6 @@ apps/*/public/
 .claude/worktrees
 # Local deploy test artifacts (signed wgts)
 deploy-test/
+
+# Gradle daemon cache (never commit)
+platforms/*/templates/.gradle/
