@@ -170,13 +170,13 @@ async function loadRails(url: string): Promise<Rails> {
 
 export default Blits.Component("Movies", {
   template: `
-    <Element w="1560" h="1080" color="$background">
-      <Text content="Movies" font="Tempo Std" x="60" y="40" size="56" color="$accent" />
+    <Element w="1560" h="1080" :color="$background">
+      <Text content="Movies" font="Tempo Std" x="60" y="40" size="56" :color="$accent" />
       <!-- FIXED clip window; the content group pans inside it (vertical rail scroll
            + horizontal scroll of the focused rail) so focus never leaves view. -->
       <Element x="60" y="200" clipping="true" w="1500" h="820">
         <Element :x="$contentX" :y="$contentY">
-          <Element w="208" h="308" :x="$hlX" :y="$hlY" color="$accent" :alpha="$hlAlpha" />
+          <Element w="208" h="308" :x="$hlX" :y="$hlY" :color="$accent" :alpha="$hlAlpha" />
           <Text
             :for="(label, i) in $labels"
             key="$label.title"
@@ -185,12 +185,12 @@ export default Blits.Component("Movies", {
             x="8"
             :y="$label.y"
             size="30"
-            color="$textMuted"
+            :color="$textMuted"
           />
           <Element :for="(card, j) in $cards" key="$card.id" :x="$card.x" :y="$card.y">
             <Element w="200" h="300" color="#16283b" />
             <Element w="200" h="300" :src="$card.poster" />
-            <Text content="$card.title" font="Open Sans" x="0" y="308" size="22" color="$text" maxwidth="200" maxlines="1" textoverflow="..." />
+            <Text content="$card.title" font="Open Sans" x="0" y="308" size="22" :color="$text" maxwidth="200" maxlines="1" textoverflow="..." />
           </Element>
         </Element>
       </Element>
@@ -245,19 +245,30 @@ export default Blits.Component("Movies", {
   },
   hooks: {
     async ready() {
-      const self = this as unknown as {
-        url: string;
-        labels: RailLabel[];
-        cards: Card[];
-        $appState: { movieRailSizes: number[]; movieCards: PlayEntry[] };
-      };
-      const rails = await loadRails(self.url);
-      self.labels = rails.labels;
-      self.cards = rails.cards;
-      // Publish per-rail counts (focus clamping) + the (rail,col)→stream lookup
-      // (Enter→player) so the root App owns input without owning movie data.
-      self.$appState.movieRailSizes = rails.sizes;
-      self.$appState.movieCards = rails.play;
+      await refresh(this as unknown as MoviesThis, (this as unknown as MoviesThis).url);
+    },
+  },
+  // Re-fetch when the data URL changes on hot-apply (config.updated → new endpoint).
+  watch: {
+    async url(next: string) {
+      await refresh(this as unknown as MoviesThis, next);
     },
   },
 });
+
+interface MoviesThis {
+  url: string;
+  labels: RailLabel[];
+  cards: Card[];
+  $appState: { movieRailSizes: number[]; movieCards: PlayEntry[] };
+}
+
+async function refresh(self: MoviesThis, url: string): Promise<void> {
+  const rails = await loadRails(url);
+  self.labels = rails.labels;
+  self.cards = rails.cards;
+  // Publish per-rail counts (focus clamping) + the (rail,col)→stream lookup
+  // (Enter→player) so the root App owns input without owning movie data.
+  self.$appState.movieRailSizes = rails.sizes;
+  self.$appState.movieCards = rails.play;
+}

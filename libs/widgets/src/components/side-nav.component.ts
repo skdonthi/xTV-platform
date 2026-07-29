@@ -13,8 +13,8 @@ interface NavItem {
 
 export default Blits.Component("SideNav", {
   template: `
-    <Element w="360" h="1080" color="$panel">
-      <Element w="320" h="72" x="20" :y="$barY" color="$accent" :alpha="$barAlpha" />
+    <Element w="360" h="1080" :color="$panel">
+      <Element w="320" h="72" x="20" :y="$barY" :color="$accent" :alpha="$barAlpha" />
       <Text
         :for="(item, index) in $items"
         key="$item.label"
@@ -23,7 +23,7 @@ export default Blits.Component("SideNav", {
         x="52"
         :y="$item.y"
         size="36"
-        color="$text"
+        :color="$text"
       />
     </Element>
   `,
