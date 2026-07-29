@@ -111,6 +111,31 @@ function createHtml5Player(): PlayerAdapter {
   };
 }
 
+// Tizen composites avplay video on a hardware plane BEHIND the web layer. The
+// Blits WebGL canvas (and its opaque background Element) sit on top and hide it,
+// so the movie plays but is invisible. While playing we hide the canvas and make
+// the page transparent so the video plane shows through; restored on stop.
+function showVideoPlane(on: boolean): void {
+  const doc = globalProp<Document>("document");
+  if (!doc) {
+    return;
+  }
+  const canvas = doc.querySelector("canvas") as HTMLElement | null;
+  const root = doc.documentElement;
+  const app = doc.getElementById("app");
+  if (on) {
+    root.style.background = "transparent";
+    doc.body.style.background = "transparent";
+    if (app) app.style.background = "transparent";
+    if (canvas) canvas.style.visibility = "hidden";
+  } else {
+    root.style.background = "";
+    doc.body.style.background = "";
+    if (app) app.style.background = "";
+    if (canvas) canvas.style.visibility = "";
+  }
+}
+
 // Samsung Tizen: webapis.avplay (needed for live-TV + DRM). Falls back to HTML5
 // off-device or when avplay is absent (dev).
 function createAvplayPlayer(): PlayerAdapter {
@@ -146,6 +171,7 @@ function createAvplayPlayer(): PlayerAdapter {
     async play() {
       status = "playing";
       avplay.play();
+      showVideoPlane(true);
     },
     async pause() {
       status = "paused";
@@ -154,6 +180,7 @@ function createAvplayPlayer(): PlayerAdapter {
     async stop() {
       status = "stopped";
       avplay.stop();
+      showVideoPlane(false);
     },
     getStatus() {
       return status;
@@ -161,6 +188,7 @@ function createAvplayPlayer(): PlayerAdapter {
     destroy() {
       status = "idle";
       avplay.close();
+      showVideoPlane(false);
     },
   };
 }

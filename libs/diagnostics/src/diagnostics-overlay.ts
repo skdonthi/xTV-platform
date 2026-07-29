@@ -19,8 +19,7 @@ export function createDiagnosticsOverlay(options: {
 }): DiagnosticsOverlay {
   const banner = createBanner(options.deviceInfo);
   const consolePanel = createConsolePanel(options.config);
-  const renderLogs = () =>
-    renderLogEntries(consolePanel, options.logBuffer.entries());
+  const renderLogs = () => renderLogEntries(consolePanel, options.logBuffer.entries());
   const pinBuffer = createPinBuffer(options.config);
   let mounted = false;
 
@@ -48,8 +47,7 @@ export function createDiagnosticsOverlay(options: {
       );
     },
     toggleConsole() {
-      consolePanel.dataset.visible =
-        consolePanel.dataset.visible === "true" ? "false" : "true";
+      consolePanel.dataset.visible = consolePanel.dataset.visible === "true" ? "false" : "true";
       renderLogs();
     },
   };
@@ -59,10 +57,10 @@ function createBanner(deviceInfo: DeviceInfo): HTMLElement {
   const banner = document.createElement("aside");
   banner.className = "xtv-debug-banner";
   banner.innerHTML = `
-    <strong>${escapeHtml(deviceInfo.platform)} / ${escapeHtml(deviceInfo.profile)}</strong>
+    <strong>${escapeHtml(deviceInfo.platform)} / ${escapeHtml(deviceInfo.platformVersion)}</strong>
     <span>${escapeHtml(deviceInfo.customer)} | ${escapeHtml(deviceInfo.appId)}</span>
     <span>MAC ${escapeHtml(deviceInfo.macAddress)}</span>
-    <span>${escapeHtml(deviceInfo.model)} | ${escapeHtml(deviceInfo.build)}</span>
+    <span>build ${escapeHtml(deviceInfo.profile)} | ${escapeHtml(deviceInfo.model)}</span>
   `;
 
   return banner;
@@ -91,10 +89,7 @@ function renderLogEntries(panel: HTMLElement, entries: LogEntry[]): void {
   }
 
   output.textContent = entries
-    .map(
-      (entry) =>
-        `[${entry.timestamp}] ${entry.level.toUpperCase()} ${entry.message}`,
-    )
+    .map((entry) => `[${entry.timestamp}] ${entry.level.toUpperCase()} ${entry.message}`)
     .join("\n");
   output.scrollTop = output.scrollHeight;
 }

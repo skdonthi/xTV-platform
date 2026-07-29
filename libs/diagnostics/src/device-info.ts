@@ -5,6 +5,9 @@ const deviceStore = createStorage("device");
 export interface DeviceInfo {
   platform: string;
   profile: string;
+  // Real OS version detected at runtime (e.g. Tizen "9.0"), vs `profile` which is
+  // the build target. A tizen6-profile build runs on a Tizen 9 TV — show both.
+  platformVersion: string;
   appId: string;
   customer: string;
   macAddress: string;
@@ -31,6 +34,11 @@ export function readDeviceInfo(input: DeviceInfoInput): DeviceInfo {
   return {
     platform: input.platform,
     profile: input.profile,
+    platformVersion:
+      tizenSystemInfo.platformVersion ??
+      webosDeviceInfo.firmware ??
+      androidDeviceInfo.build ??
+      "unknown",
     appId: input.appId,
     customer: input.customer,
     macAddress:
@@ -66,7 +74,25 @@ function readTizenSystemInfo(): Partial<DeviceInfo> {
     deviceId: callString(productInfo, "getDuid"),
     model: callString(productInfo, "getModel"),
     firmware: callString(productInfo, "getFirmware"),
+    platformVersion: readTizenPlatformVersion(),
   };
+}
+
+// tizen.systeminfo.getCapability is synchronous on-device; returns e.g. "9.0".
+function readTizenPlatformVersion(): string | undefined {
+  const tizen = readGlobalRecord("tizen");
+  const systemInfo = readRecord(tizen?.systeminfo);
+  const getCapability = systemInfo?.getCapability;
+  if (typeof getCapability !== "function") {
+    return undefined;
+  }
+  try {
+    const version = getCapability.call(systemInfo, "http://tizen.org/feature/platform.version");
+    const str = readString(version);
+    return str ? `Tizen ${str}` : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function readWebosDeviceInfo(): Partial<DeviceInfo> {
