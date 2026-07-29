@@ -5,6 +5,8 @@ const RAIL_STEP = 448; // rail vertical pitch (title + poster + gap between genr
 const COL_STEP = 224; // card horizontal pitch (poster + gap)
 const CARD_TOP = 52; // poster offset below its rail title
 const LEFT_PAD = 8; // inset so the focus frame's left edge isn't clipped at x<0
+const VIEWPORT_H = 820; // clip window height (matches template)
+const VISIBLE_COLS = 6; // cards that fit across the 1500-wide clip window
 // Smooth scroll/focus movement — the "rich web UI" feel.
 const EASE = { duration: 220, easing: "ease-in-out" };
 
@@ -170,22 +172,26 @@ export default Blits.Component("Movies", {
   template: `
     <Element w="1560" h="1080" color="$background">
       <Text content="Movies" font="Tempo Std" x="60" y="40" size="56" color="$accent" />
-      <Element x="60" :y="$railsY" clipping="true" w="1500" h="860">
-        <Element w="208" h="308" :x="$hlX" :y="$hlY" color="$accent" :alpha="$hlAlpha" />
-        <Text
-          :for="(label, i) in $labels"
-          key="$label.title"
-          content="$label.title"
-          font="Open Sans"
-          x="8"
-          :y="$label.y"
-          size="30"
-          color="$textMuted"
-        />
-        <Element :for="(card, j) in $cards" key="$card.id" :x="$card.x" :y="$card.y">
-          <Element w="200" h="300" color="#16283b" />
-          <Element w="200" h="300" :src="$card.poster" />
-          <Text content="$card.title" font="Open Sans" x="0" y="308" size="22" color="$text" maxwidth="200" maxlines="1" textoverflow="..." />
+      <!-- FIXED clip window; the content group pans inside it (vertical rail scroll
+           + horizontal scroll of the focused rail) so focus never leaves view. -->
+      <Element x="60" y="200" clipping="true" w="1500" h="820">
+        <Element :x="$contentX" :y="$contentY">
+          <Element w="208" h="308" :x="$hlX" :y="$hlY" color="$accent" :alpha="$hlAlpha" />
+          <Text
+            :for="(label, i) in $labels"
+            key="$label.title"
+            content="$label.title"
+            font="Open Sans"
+            x="8"
+            :y="$label.y"
+            size="30"
+            color="$textMuted"
+          />
+          <Element :for="(card, j) in $cards" key="$card.id" :x="$card.x" :y="$card.y">
+            <Element w="200" h="300" color="#16283b" />
+            <Element w="200" h="300" :src="$card.poster" />
+            <Text content="$card.title" font="Open Sans" x="0" y="308" size="22" color="$text" maxwidth="200" maxlines="1" textoverflow="..." />
+          </Element>
         </Element>
       </Element>
     </Element>
@@ -204,12 +210,21 @@ export default Blits.Component("Movies", {
     return { labels: [] as RailLabel[], cards: [] as Card[] };
   },
   computed: {
-    // Vertical scroll: keep the focused rail pinned near the top (animated).
-    railsY() {
-      return {
-        value: 200 - (this as unknown as { railFocus: number }).railFocus * RAIL_STEP,
-        transition: EASE,
-      };
+    // Horizontal scroll of the focused rail: keep the focused card in view once
+    // it passes the last visible column. Whole content group pans (Blits renders
+    // rails flat); switching rails resets colFocus → grid returns to the left.
+    contentX() {
+      const colFocus = (this as unknown as { colFocus: number }).colFocus;
+      const scroll = Math.max(0, colFocus - (VISIBLE_COLS - 1)) * COL_STEP;
+      return { value: -scroll, transition: EASE };
+    },
+    // Vertical rail scroll, CLAMPED so the last rails fill from the bottom instead
+    // of over-scrolling into empty space (was: focus landing below real content).
+    contentY() {
+      const s = this as unknown as { railFocus: number; labels: RailLabel[] };
+      const maxScroll = Math.max(0, s.labels.length * RAIL_STEP - VIEWPORT_H);
+      const scroll = Math.min(s.railFocus * RAIL_STEP, maxScroll);
+      return { value: -scroll, transition: EASE };
     },
     hlX() {
       return {
