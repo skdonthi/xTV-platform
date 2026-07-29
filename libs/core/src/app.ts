@@ -142,11 +142,11 @@ function inPlayback(): boolean {
 export default Blits.Application({
   components: { ...contentComponents, SideNav },
   template: `
-    <Element w="1920" h="1080" :color="$background">
-      <SideNav :navIndex="$navIndex" :active="$navActive" :items="$navItems" :panel="$panel" :accent="$accent" :text="$text" />
+    <Element w="1920" h="1080" color="$background">
+      <SideNav :navIndex="$navIndex" :active="$navActive" :items="$navItems" panel="$panel" accent="$accent" text="$text" />
       <Element x="360">
-        <Itinerary :show="$showItinerary" :focusIndex="$contentIndex" :active="$contentActive" :background="$background" :text="$text" :accent="$accent" :url="$itineraryUrl" />
-        <Movies :show="$showMovies" :active="$contentActive" :railFocus="$railIndex" :colFocus="$colIndex" :background="$background" :accent="$accent" :textMuted="$textMuted" :text="$text" :url="$moviesUrl" />
+        <Itinerary :show="$showItinerary" :focusIndex="$contentIndex" :active="$contentActive" background="$background" text="$text" accent="$accent" :url="$itineraryUrl" />
+        <Movies :show="$showMovies" :active="$contentActive" :railFocus="$railIndex" :colFocus="$colIndex" background="$background" accent="$accent" textMuted="$textMuted" text="$text" :url="$moviesUrl" />
       </Element>
     </Element>
   `,

@@ -170,13 +170,13 @@ async function loadRails(url: string): Promise<Rails> {
 
 export default Blits.Component("Movies", {
   template: `
-    <Element w="1560" h="1080" :color="$background">
-      <Text content="Movies" font="Tempo Std" x="60" y="40" size="56" :color="$accent" />
+    <Element w="1560" h="1080" color="$background">
+      <Text content="Movies" font="Tempo Std" x="60" y="40" size="56" color="$accent" />
       <!-- FIXED clip window; the content group pans inside it (vertical rail scroll
            + horizontal scroll of the focused rail) so focus never leaves view. -->
       <Element x="60" y="200" clipping="true" w="1500" h="820">
         <Element :x="$contentX" :y="$contentY">
-          <Element w="208" h="308" :x="$hlX" :y="$hlY" :color="$accent" :alpha="$hlAlpha" />
+          <Element w="208" h="308" :x="$hlX" :y="$hlY" color="$accent" :alpha="$hlAlpha" />
           <Text
             :for="(label, i) in $labels"
             key="$label.title"
@@ -185,12 +185,12 @@ export default Blits.Component("Movies", {
             x="8"
             :y="$label.y"
             size="30"
-            :color="$textMuted"
+            color="$textMuted"
           />
           <Element :for="(card, j) in $cards" key="$card.id" :x="$card.x" :y="$card.y">
             <Element w="200" h="300" color="#16283b" />
             <Element w="200" h="300" :src="$card.poster" />
-            <Text content="$card.title" font="Open Sans" x="0" y="308" size="22" :color="$text" maxwidth="200" maxlines="1" textoverflow="..." />
+            <Text content="$card.title" font="Open Sans" x="0" y="308" size="22" color="$text" maxwidth="200" maxlines="1" textoverflow="..." />
           </Element>
         </Element>
       </Element>
