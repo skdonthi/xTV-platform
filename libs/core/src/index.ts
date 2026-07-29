@@ -74,6 +74,7 @@ export async function bootstrapTvPlatform(
       try {
         const next = await loader.load();
         next.layout = await services.layout.getActiveLayout(next.layout);
+        console.info(`xTV re-pulled config, theme=${next.theme}`);
         setBootConfig(next);
         globalThis.dispatchEvent?.(new CustomEvent("xtv:config-updated"));
       } catch (error) {

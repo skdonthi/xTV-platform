@@ -164,7 +164,14 @@ async function applyRemoteOverride(bundled: TenantConfigFile): Promise<TenantCon
   }
 
   try {
-    const response = await fetch(url, { cache: "no-store" });
+    // Cache-bust: some TV webviews ignore `cache: "no-store"` and serve a stale
+    // config, so a head-end change (e.g. theme) never re-pulls on the device even
+    // though it works in the dev browser. A unique query param forces a fresh GET.
+    const bustUrl = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
+    const response = await fetch(bustUrl, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }

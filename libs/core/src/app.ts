@@ -177,7 +177,9 @@ export default Blits.Application({
         }
         s.route = s.routes[s.navIndex] ?? s.routes[0] ?? "";
         s.column = "nav";
-        console.info("xTV config hot-applied (no reload)");
+        // Log the applied theme so on-TV diagnostics show stale-fetch (old theme)
+        // vs a render issue (new theme but no visual change).
+        console.info(`xTV config hot-applied (no reload) theme=${getBootConfig().theme}`);
       });
     },
   },
