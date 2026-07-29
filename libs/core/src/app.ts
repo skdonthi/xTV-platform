@@ -25,6 +25,7 @@ interface PlayEntry {
 interface Section {
   label: string;
   widget: string;
+  dataSource?: string;
 }
 interface NavItem {
   label: string;
@@ -59,7 +60,25 @@ function buildSections(): Section[] {
         CONTENT_WIDGETS[n.widget] !== undefined &&
         (!n.feature || isFeatureEnabled(config.features, n.feature)),
     )
-    .map((n) => ({ label: n.label ?? (n.widget as string), widget: n.widget as string }));
+    .map((n) => ({
+      label: n.label ?? (n.widget as string),
+      widget: n.widget as string,
+      dataSource: n.dataSource,
+    }));
+}
+
+// Resolve a section's data URL: explicit node.dataSource (full URL, or a key into
+// the tenant's integrations), else the `<widget>Url` convention. Keeps endpoints
+// in config while letting the layout point a widget at any source.
+function resolveDataSource(section: Section, services: Record<string, string | undefined>): string {
+  const ds = section.dataSource;
+  if (ds && /^https?:\/\//.test(ds)) {
+    return ds;
+  }
+  if (ds) {
+    return services[ds] ?? "";
+  }
+  return services[`${section.widget}Url`] ?? "";
 }
 
 // Project the current (boot or hot-applied) config into the reactive UI state:
@@ -70,7 +89,13 @@ function deriveUi() {
   const config = getBootConfig();
   const theme = getTheme(config.theme);
   const sections = buildSections();
-  const services = config.services as unknown as { itineraryUrl?: string; moviesUrl?: string };
+  const services = config.services as unknown as Record<string, string | undefined>;
+  // Per-widget data URL from node.dataSource (see resolveDataSource). Template
+  // tags are static, so the two known widgets read their own url key.
+  const urlByWidget: Record<string, string> = {};
+  for (const section of sections) {
+    urlByWidget[section.widget] = resolveDataSource(section, services);
+  }
   return {
     background: theme.colors.background,
     text: theme.colors.text,
@@ -79,8 +104,8 @@ function deriveUi() {
     panel: theme.colors.surface,
     navItems: sections.map((s, i) => ({ label: s.label, y: 260 + i * 88 })) as NavItem[],
     routes: sections.map((s) => s.widget),
-    itineraryUrl: services.itineraryUrl ?? "",
-    moviesUrl: services.moviesUrl ?? "",
+    itineraryUrl: urlByWidget.itinerary ?? "",
+    moviesUrl: urlByWidget.movies ?? "",
   };
 }
 

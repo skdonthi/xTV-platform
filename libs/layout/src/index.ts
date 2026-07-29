@@ -15,6 +15,10 @@ export interface LayoutNode {
   feature?: string;
   // Human label for nav-driving layouts (e.g. the side-nav entry for a section).
   label?: string;
+  // Data binding for the widget: a full URL, or a key into the tenant's
+  // integrations (e.g. "itineraryUrl"). Lets the layout point a widget at any
+  // endpoint. Falls back to the `<widget>Url` convention when omitted.
+  dataSource?: string;
 }
 
 export interface CustomerLayout {
