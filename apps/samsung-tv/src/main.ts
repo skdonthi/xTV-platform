@@ -1,3 +1,5 @@
+// MUST be first — installs runtime-method polyfills before any vendored code loads.
+import "./polyfills";
 import { bootstrapTvPlatform } from "@x-tv/core";
 
 // Inject the Tizen firmware SDK globals at runtime. Static <script> tags in

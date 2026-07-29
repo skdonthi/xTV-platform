@@ -17,9 +17,12 @@ export default defineConfig({
     alias: createXtvAliases(workspaceRoot, process.env.VITE_XTV_CUSTOMER),
   },
   build: {
+    // Older Android TV WebView builds lag Chrome; keep the same transpile floor.
+    target: ["chrome76"],
     outDir: resolve(root, "../../dist/apps/android-tv"),
     emptyOutDir: true,
   },
+  esbuild: { target: "chrome76" },
   server: {
     host: "127.0.0.1",
     port: 4303,

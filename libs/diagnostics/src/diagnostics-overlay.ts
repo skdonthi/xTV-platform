@@ -153,11 +153,11 @@ function readRemoteDigit(event: KeyboardEvent): string | undefined {
   }
 
   if (/^Digit[0-9]$/.test(event.code)) {
-    return event.code.at(-1);
+    return event.code.slice(-1);
   }
 
   if (/^Numpad[0-9]$/.test(event.code)) {
-    return event.code.at(-1);
+    return event.code.slice(-1);
   }
 
   const keyCodeDigit = keyCodeToDigit(event.keyCode);
@@ -182,10 +182,16 @@ function keyCodeToDigit(keyCode: number): string | undefined {
 }
 
 function escapeHtml(value: string): string {
+  // split/join instead of replaceAll — old TV engines (M76) lack String.replaceAll.
   return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .split("&")
+    .join("&amp;")
+    .split("<")
+    .join("&lt;")
+    .split(">")
+    .join("&gt;")
+    .split('"')
+    .join("&quot;")
+    .split("'")
+    .join("&#039;");
 }
