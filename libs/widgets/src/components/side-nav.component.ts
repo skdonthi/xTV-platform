@@ -3,12 +3,13 @@ import Blits from "@lightningjs/blits";
 // Smooth movement/fade for the selection bar.
 const EASE = { duration: 200, easing: "ease-in-out" };
 
-// Guest-portal side navigation — display only. The highlighted item is driven by
-// the `navIndex` prop (the root App owns focus + input via the platform keymap).
-const ITEMS = [
-  { label: "Home", route: "home", y: 260 },
-  { label: "Movies", route: "movies", y: 348 },
-];
+// Guest-portal side navigation — display only. Items are supplied by the root App
+// (derived from the tenant layout / home.json); the highlighted item is driven by
+// the `navIndex` prop.
+interface NavItem {
+  label: string;
+  y: number;
+}
 
 export default Blits.Component("SideNav", {
   template: `
@@ -16,7 +17,7 @@ export default Blits.Component("SideNav", {
       <Element w="320" h="72" x="20" :y="$barY" color="$accent" :alpha="$barAlpha" />
       <Text
         :for="(item, index) in $items"
-        key="$item.route"
+        key="$item.label"
         content="$item.label"
         font="Open Sans"
         x="52"
@@ -26,13 +27,11 @@ export default Blits.Component("SideNav", {
       />
     </Element>
   `,
-  props: { panel: {}, accent: {}, text: {}, navIndex: {}, active: {} },
-  state() {
-    return { items: ITEMS };
-  },
+  props: { panel: {}, accent: {}, text: {}, navIndex: {}, active: {}, items: {} },
   computed: {
     barY() {
-      const y = (ITEMS[(this as unknown as { navIndex: number }).navIndex]?.y ?? 260) - 16;
+      const s = this as unknown as { items: NavItem[]; navIndex: number };
+      const y = (s.items[s.navIndex]?.y ?? 260) - 16;
       return { value: y, transition: EASE };
     },
     // Dim the selection bar when focus has moved to the content column.

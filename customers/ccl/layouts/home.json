@@ -1,20 +1,12 @@
 {
   "id": "ccl-home",
-  "version": 1,
+  "version": 2,
   "root": {
-    "id": "home-screen",
+    "id": "portal",
     "type": "screen",
     "children": [
-      {
-        "id": "hero",
-        "type": "widget",
-        "widget": "hero-banner",
-        "props": {
-          "title": "Welcome Aboard",
-          "subtitle": "Your in-cabin entertainment hub.",
-          "image": "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb"
-        }
-      }
+      { "id": "sec-home", "type": "widget", "widget": "itinerary", "label": "Home" },
+      { "id": "sec-movies", "type": "widget", "widget": "movies", "label": "Movies" }
     ]
   }
 }

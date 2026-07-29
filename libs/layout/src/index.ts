@@ -13,6 +13,8 @@ export interface LayoutNode {
   // Optional feature gate: node is rendered only when this flag is on for the
   // tenant. Lets a cruiseline turn a row/widget on or off from config alone.
   feature?: string;
+  // Human label for nav-driving layouts (e.g. the side-nav entry for a section).
+  label?: string;
 }
 
 export interface CustomerLayout {
