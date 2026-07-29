@@ -59,7 +59,7 @@ export default Blits.Component("Itinerary", {
         <Element w="1440" h="130" x="-8" :y="$highlightY" color="$accent" :alpha="$highlightAlpha" />
         <Element :for="(port, index) in $ports" key="$port.y" :y="$port.y">
           <Element w="220" h="124" color="$accent" alpha="0.18" />
-          <Text content="$port.dayLabel" font="Tempo Std" x="0" y="34" w="220" contain="width" align="center" size="48" color="$accent" />
+          <Text content="$port.dayLabel" font="Tempo Std" x="0" y="38" maxwidth="220" align="center" size="48" color="$accent" />
           <Text content="$port.label" font="Open Sans" x="252" y="42" size="40" color="$text" />
         </Element>
       </Element>

@@ -36,7 +36,8 @@
       "@x-tv/muting": ["libs/muting/src/index.ts"],
       "@x-tv/storage": ["libs/storage/src/index.ts"],
       "@x-tv/tenant/config": ["customers/ccl/config.json"],
-      "@x-tv/tenant/layout": ["customers/ccl/layouts/home.json"]
+      "@x-tv/tenant/layout": ["customers/ccl/layouts/home.json"],
+      "@x-tv/tenant/fonts": ["customers/ccl/fonts.json"]
     }
   },
   "include": ["apps/**/*.ts", "libs/**/*.ts", "tools/**/*.ts"],

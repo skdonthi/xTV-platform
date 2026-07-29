@@ -5,6 +5,7 @@ import type { ServiceGatewayConfig } from "@x-tv/service-gateway";
 // (see tools/vite/xtv-aliases.ts). Static imports mean the bundle contains only
 // the active brand — no other tenant's config/layout/names ever ship (GDPR).
 import tenantConfig from "@x-tv/tenant/config";
+import tenantFonts from "@x-tv/tenant/fonts";
 import tenantLayout from "@x-tv/tenant/layout";
 import androidTv12 from "../../../platforms/android/profiles/android-tv-12.json";
 import webos3 from "../../../platforms/lg/profiles/webos3.json";
@@ -78,11 +79,13 @@ interface TenantConfigFile {
   integrations: TenantIntegrations;
   identity?: unknown;
   keymap?: KeymapConfig;
-  fonts?: FontSet;
 }
 
 const bundledConfig = tenantConfig as unknown as TenantConfigFile;
 const bundledLayout = tenantLayout as unknown as CustomerLayout;
+// Build-time brand asset — imported (never head-end-overridable) so a deployment
+// can't swap a brand's typeface. Canvas text needs MSDF atlases, not CSS fonts.
+const bundledFonts = tenantFonts as unknown as FontSet;
 
 const platformProfiles: Record<string, PlatformProfile> = {
   tizen6,
@@ -148,8 +151,7 @@ export function createRuntimeConfigLoader(options: {
           websocketUrl: integrations.websocket?.url,
           mutingUrl: integrations.mutingService?.url,
         },
-        // Built-in "sans-serif" renderer default when a tenant declares no fonts.
-        fonts: merged.fonts ?? { default: "sans-serif", families: [] },
+        fonts: bundledFonts,
       };
     },
   };
