@@ -32,6 +32,7 @@ type Avplay = {
   setDisplayRect(x: number, y: number, w: number, h: number): void;
   setDrm(type: string, operation: string, jsonParams: string): void;
   getState?(): string;
+  setListener?(callbacks: Record<string, (...args: unknown[]) => void>): void;
 };
 
 // Android TV native bridge (ExoPlayer on the Kotlin side) — same bridge the
@@ -64,6 +65,9 @@ function createHtml5Player(): PlayerAdapter {
       video.style.width = "100%";
       video.style.height = "100%";
       video.style.background = "#000";
+      // Hide the loader once playback actually starts (or on error/stall).
+      video.addEventListener("playing", () => showLoader(false));
+      video.addEventListener("error", () => showLoader(false));
       doc.body.appendChild(video);
     }
     return video;
@@ -73,6 +77,7 @@ function createHtml5Player(): PlayerAdapter {
     async load(url, _drm) {
       // HTML5 has no pro:idiom/LYNK support; drm is ignored (dev/webOS clear only).
       status = "loading";
+      showLoader(true);
       const element = ensure();
       if (element) {
         element.style.display = "block";
@@ -92,6 +97,7 @@ function createHtml5Player(): PlayerAdapter {
     },
     async stop() {
       status = "stopped";
+      showLoader(false);
       if (video) {
         video.pause();
         video.removeAttribute("src");
@@ -105,6 +111,7 @@ function createHtml5Player(): PlayerAdapter {
     },
     destroy() {
       status = "idle";
+      showLoader(false);
       video?.remove();
       video = undefined;
     },
@@ -136,6 +143,50 @@ function showVideoPlane(on: boolean): void {
   }
 }
 
+// DOM loading overlay shown between "movie selected" and "video actually plays"
+// (avplay open→prepare→buffer can take seconds). DOM, not Blits — the canvas is
+// hidden during playback (showVideoPlane), so a Blits loader wouldn't show. A max
+// timeout hides it so it can never stick if the playback event never fires.
+let loaderTimer: ReturnType<typeof setTimeout> | undefined;
+function showLoader(on: boolean): void {
+  const doc = globalProp<Document>("document");
+  if (!doc) {
+    return;
+  }
+  if (loaderTimer) {
+    clearTimeout(loaderTimer);
+    loaderTimer = undefined;
+  }
+  const id = "xtv-player-loader";
+  const existing = doc.getElementById(id);
+  if (!on) {
+    existing?.remove();
+    return;
+  }
+  if (!doc.getElementById("xtv-loader-style")) {
+    const style = doc.createElement("style");
+    style.id = "xtv-loader-style";
+    style.textContent = "@keyframes xtv-spin{to{transform:rotate(360deg)}}";
+    doc.head.appendChild(style);
+  }
+  if (!existing) {
+    const el = doc.createElement("div");
+    el.id = id;
+    el.style.cssText =
+      "position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:#000;color:#fff;font-family:Arial,sans-serif";
+    const spinner = doc.createElement("div");
+    spinner.style.cssText =
+      "width:72px;height:72px;border:6px solid rgb(255 255 255/25%);border-top-color:#fff;border-radius:50%;animation:xtv-spin 1s linear infinite";
+    const label = doc.createElement("div");
+    label.style.cssText = "font-size:32px";
+    label.textContent = "Loading…";
+    el.append(spinner, label);
+    doc.body.appendChild(el);
+  }
+  // Safety: never let the loader stick if the playing/buffering event never comes.
+  loaderTimer = setTimeout(() => doc.getElementById(id)?.remove(), 20000);
+}
+
 // Samsung Tizen: webapis.avplay (needed for live-TV + DRM). Falls back to HTML5
 // off-device or when avplay is absent (dev).
 function createAvplayPlayer(): PlayerAdapter {
@@ -144,9 +195,16 @@ function createAvplayPlayer(): PlayerAdapter {
     return createHtml5Player();
   }
   let status: PlaybackStatus = "idle";
+  // Hide the loader once the stream is buffered/playing (or on error).
+  avplay.setListener?.({
+    onbufferingcomplete: () => showLoader(false),
+    oncurrentplaytime: () => showLoader(false),
+    onerror: () => showLoader(false),
+  });
   return {
     async load(url, drm) {
       status = "loading";
+      showLoader(true);
       // Tizen 6 avplay chokes on an upper-case .MPG extension (legacy CCL quirk).
       const src = url.replace(/\.MPG(\?|$)/, ".mpg$1");
       // Tear down ANY prior session before opening — an open-but-not-closed
@@ -186,6 +244,7 @@ function createAvplayPlayer(): PlayerAdapter {
     },
     async stop() {
       status = "stopped";
+      showLoader(false);
       // stop AND close — leaving it open leaks audio into the next play.
       try {
         avplay.stop();
@@ -200,6 +259,7 @@ function createAvplayPlayer(): PlayerAdapter {
     },
     destroy() {
       status = "idle";
+      showLoader(false);
       avplay.close();
       showVideoPlane(false);
     },
