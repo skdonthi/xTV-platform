@@ -1,7 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "files": {
-    "ignore": [".nx", "dist", "node_modules"]
+    "ignore": [".nx", "dist", "node_modules", "signing"]
   },
   "formatter": {
     "enabled": true,
