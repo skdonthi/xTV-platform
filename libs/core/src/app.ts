@@ -62,6 +62,28 @@ function buildSections(): Section[] {
     .map((n) => ({ label: n.label ?? (n.widget as string), widget: n.widget as string }));
 }
 
+// Project the current (boot or hot-applied) config into the reactive UI state:
+// theme colors, nav items/routes (from home.json), and per-widget data URLs.
+// Called at state() init AND on hot-apply, so a head-end config/layout change
+// re-renders in place with no reload.
+function deriveUi() {
+  const config = getBootConfig();
+  const theme = getTheme(config.theme);
+  const sections = buildSections();
+  const services = config.services as unknown as { itineraryUrl?: string; moviesUrl?: string };
+  return {
+    background: theme.colors.background,
+    text: theme.colors.text,
+    textMuted: theme.colors.textMuted,
+    accent: theme.colors.accent,
+    panel: theme.colors.surface,
+    navItems: sections.map((s, i) => ({ label: s.label, y: 260 + i * 88 })) as NavItem[],
+    routes: sections.map((s) => s.widget),
+    itineraryUrl: services.itineraryUrl ?? "",
+    moviesUrl: services.moviesUrl ?? "",
+  };
+}
+
 // One player for the app lifetime; the adapter picks avplay (Samsung, needs the
 // partner cert + privilege), the Android bridge, or HTML5 (webOS/dev browser).
 // ponytail: PROIDIOM-encrypted streams still need DRM setup on avplay and
@@ -97,31 +119,35 @@ export default Blits.Application({
     </Element>
   `,
   state() {
-    const config = getBootConfig();
-    const theme = getTheme(config.theme);
-    const sections = buildSections();
-    const routes = sections.map((s) => s.widget);
-    const navItems: NavItem[] = sections.map((s, i) => ({ label: s.label, y: 260 + i * 88 }));
+    const ui = deriveUi();
     return {
-      background: theme.colors.background,
-      text: theme.colors.text,
-      textMuted: theme.colors.textMuted,
-      accent: theme.colors.accent,
-      panel: theme.colors.surface,
-      // Nav + routing come from home.json (see buildSections).
-      navItems,
-      routes,
+      ...ui,
       navIndex: 0,
-      route: routes[0] ?? "itinerary",
+      route: ui.routes[0] ?? "itinerary",
       // "nav" = side menu owns up/down; "content" = the view owns up/down/left/right.
       column: "nav" as "nav" | "content",
       contentIndex: 0, // itinerary row
       railIndex: 0, // movie rail (vertical)
       colIndex: 0, // movie card within rail (horizontal)
-      // ponytail: service URLs live in tenant config integrations; services spreads them.
-      itineraryUrl: (config.services as unknown as { itineraryUrl?: string }).itineraryUrl ?? "",
-      moviesUrl: (config.services as unknown as { moviesUrl?: string }).moviesUrl ?? "",
     };
+  },
+  hooks: {
+    ready() {
+      // Hot-apply: core re-pulls config/layout on a head-end `config.updated` push
+      // and fires this event. Re-derive the config-driven state in place — Blits
+      // re-renders on state assignment, so NO reload (retires location.reload()).
+      globalThis.addEventListener?.("xtv:config-updated", () => {
+        const ui = deriveUi();
+        const s = this as unknown as AppThis & Record<string, unknown>;
+        Object.assign(s, ui);
+        if (s.navIndex >= s.routes.length) {
+          s.navIndex = 0;
+        }
+        s.route = s.routes[s.navIndex] ?? s.routes[0] ?? "";
+        s.column = "nav";
+        console.info("xTV config hot-applied (no reload)");
+      });
+    },
   },
   computed: {
     showItinerary() {

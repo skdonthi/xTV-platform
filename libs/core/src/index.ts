@@ -57,9 +57,11 @@ export async function bootstrapTvPlatform(
   runtimeConfig.layout = await services.layout.getActiveLayout(runtimeConfig.layout);
   setBootConfig(runtimeConfig);
 
-  // Head-end can push {"type":"config.updated"} to re-pull config. With the Blits
-  // canvas we soft-reload to re-launch (Blits-reactive in-place hot-apply — update
-  // app state instead of reload — is the next step).
+  // Head-end pushes {"type":"config.updated"} to apply a config/layout change.
+  // We re-pull config + layout, refresh the boot-config snapshot, and fire a DOM
+  // event; the Blits app re-derives its reactive state in place (see app.ts
+  // hooks.ready) — NO reload. Reload stays only as a fallback if re-pull throws.
+  // (Keymap/font changes still need a reload — they're set once at Blits.Launch.)
   function connectLiveConfig(): void {
     const wsUrl = runtimeConfig.realtime.websocketUrl;
     if (!runtimeConfig.features.websocketEvents || !wsUrl) {
@@ -67,9 +69,17 @@ export async function bootstrapTvPlatform(
     }
     const bus = createWebsocketEventBus();
     bus.connect(wsUrl);
-    bus.on("config.updated", () => {
-      console.info("xTV config.updated — reloading");
-      globalThis.location?.reload();
+    bus.on("config.updated", async () => {
+      console.info("xTV config.updated — hot-applying");
+      try {
+        const next = await loader.load();
+        next.layout = await services.layout.getActiveLayout(next.layout);
+        setBootConfig(next);
+        globalThis.dispatchEvent?.(new CustomEvent("xtv:config-updated"));
+      } catch (error) {
+        console.error("hot-apply failed; falling back to reload", error);
+        globalThis.location?.reload();
+      }
     });
   }
 
