@@ -47,7 +47,11 @@ export function createDiagnosticsOverlay(options: {
       );
     },
     toggleConsole() {
-      consolePanel.dataset.visible = consolePanel.dataset.visible === "true" ? "false" : "true";
+      const visible = consolePanel.dataset.visible === "true" ? "false" : "true";
+      consolePanel.dataset.visible = visible;
+      // Banner (device info) rides with the console — hidden for guests, revealed
+      // with the PIN. No auto-hide; the same PIN toggles both back off.
+      banner.style.display = visible === "true" ? "" : "none";
       renderLogs();
     },
   };
@@ -56,6 +60,8 @@ export function createDiagnosticsOverlay(options: {
 function createBanner(deviceInfo: DeviceInfo): HTMLElement {
   const banner = document.createElement("aside");
   banner.className = "xtv-debug-banner";
+  // Hidden by default; revealed with the console via the PIN (see toggleConsole).
+  banner.style.display = "none";
   banner.innerHTML = `
     <strong>${escapeHtml(deviceInfo.platform)} / ${escapeHtml(deviceInfo.platformVersion)}</strong>
     <span>${escapeHtml(deviceInfo.customer)} | ${escapeHtml(deviceInfo.appId)}</span>
