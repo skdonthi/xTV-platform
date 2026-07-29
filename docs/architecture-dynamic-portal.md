@@ -70,32 +70,39 @@ names to compiled Blits components. It is the `components` set the host knows.
 **Never globs tenants** — the build-time `@x-tv/tenant/*` alias keeps one tenant's
 widget set in the artifact.
 
-### 4.2 View switching — Blits Router, not dynamic `is`
-Investigated and **rejected** `<Component is="$name">`: Blits resolves `is` **once
-at mount** and does not reactively swap it (verified — a keyed standalone element
-and a `:for`+`:show` over a recomputed array both kept the first view). It proves
-name→component resolution but is not a view-switcher.
+### 4.2 View switching — registry + `:show`, NOT dynamic `is` or Router
+Two mechanisms were investigated and **rejected**:
+- **`<Component is="$name">`** — Blits resolves `is` **once at mount** and never
+  reactively swaps it (verified: a keyed standalone element and a `:for`+`:show`
+  over a recomputed array both stuck on the first view).
+- **Runtime-generated template** (loop the registry into a template string) —
+  Blits **precompiles the `template:` string literal at build** (`vite/preCompiler`
+  regex-matches and parses it during Vite transform). A runtime `${...}`
+  interpolation is treated as literal text and never becomes tags, so the widgets
+  never mount. **Blits templates must be static string literals.**
+- **Blits Router** (`routes`/`<RouterView>`/`keepAlive`) — works, but **auto-focuses
+  the routed page** (`router.js` calls `view.$focus()`), which fights a persistent
+  side-nav + one unified D-pad focus and needs focus-handoff plumbing across the
+  RouterView boundary. Not worth it for this layout.
 
-**Chosen:** Blits' built-in **Router** — `routes`, `$router.to(path)`,
-`<RouterView>`, `keepAlive`. Routes are built from `home.json` sections resolved
-through the registry. `keepAlive: true` preserves a view's loaded state (a movie
-rail keeps its fetched data and scroll position across switches).
+**Chosen:** a **widget registry** (`CONTENT_WIDGETS`: name → Blits component) plus a
+**static template** that lists the known widget tags, each `:show`-gated by route.
+The App owns input (proven model). `home.json` (filtered against the registry)
+drives nav order/labels/gating and which registered widget is active.
 
-```
-routes = sections.map(s => ({
-  path: s.widget,
-  component: registry[s.widget],
-  options: { keepAlive: true },
-}))
-```
+**The Blits ceiling (be explicit):** because templates are static/precompiled, a
+tenant can freely **select/order/gate among the build's widgets** from config, but
+adding a **new widget _type_** requires a component + a static template tag +
+registry entry — an engineering task, not a pure config push. Fully data-driven
+widget *types* would require `blits: { precompile: false }` (runtime template
+parse) — a startup cost on low-end TV SoCs we're not paying now.
 
-### 4.3 Focus state → appState (the deliberate shift)
-Router-mounted components can't take reactive **template** props (they're mounted
-by the router, not bound in a parent template). So shared focus/navigation state —
-`column`, and per-view indices (`contentIndex`, `railIndex`, `colIndex`) — moves to
-the **Blits `appState` plugin**. The App's input handlers write it; the routed
-widgets read it via `this.$appState`. This is cleaner than prop-drilling **and** it
-is precisely the reactive-appState foundation Phase 2 needs to retire the reload.
+### 4.3 Focus & state
+The App root stays focused and owns the D-pad (two-column model); no per-page focus
+handoff. Cross-view counts (`itineraryCount`, `movieRailSizes`, the play lookup)
+live in the Blits `appState` plugin so widgets publish and the App reads without
+prop-drilling — the same reactive-appState foundation Phase 2 needs to retire the
+reload.
 
 ### 4.4 Spatial focus
 The current two-column model (side-nav ⇄ content) generalizes to: persistent nav

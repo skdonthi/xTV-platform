@@ -2,8 +2,17 @@ import Blits from "@lightningjs/blits";
 import { isFeatureEnabled } from "@x-tv/feature-flags";
 import { type DrmType, type PlayerAdapter, createPlayerAdapter } from "@x-tv/player";
 import { getTheme } from "@x-tv/themes";
-import { Itinerary, Movies, SideNav } from "@x-tv/widgets";
+import { CONTENT_WIDGETS, SideNav } from "@x-tv/widgets";
 import { getBootConfig } from "./boot-config";
+
+// Register content widgets from the registry under capitalized tag names (Blits
+// only resolves capitalized tags as components, and precompiles templates at
+// build so the tags must be static — see the template below). The registry is
+// still the single source of name→component + home.json validation.
+const contentComponents: Record<string, unknown> = {};
+for (const [name, component] of Object.entries(CONTENT_WIDGETS)) {
+  contentComponents[name.charAt(0).toUpperCase() + name.slice(1)] = component;
+}
 
 interface PlayEntry {
   rail: number;
@@ -33,12 +42,12 @@ type AppThis = {
   $appState: { itineraryCount: number; movieRailSizes: number[]; movieCards: PlayEntry[] };
 };
 
-// SPIKE: derive the portal's sections from the tenant layout (home.json) instead
-// of hardcoding them. Each `widget` section becomes a nav entry + a view; a
-// section can be feature-gated. The widget→component mapping is still static
-// (Blits has no dynamic-component tag yet) — a config `widget` name only shows if
-// this app knows the component. That's the boundary to resolve if we commit to
-// this direction: a Blits widget registry for fully data-driven rendering.
+// Sections come from the tenant layout (home.json): each `widget` node that this
+// build actually knows (present in CONTENT_WIDGETS) and passes its feature gate
+// becomes a nav entry + a view. So a tenant drives nav order/labels/gating and
+// which of the build's widgets appear — all from config, no code change. Adding a
+// NEW widget TYPE still needs a component + a static template tag (Blits
+// precompiles templates → no runtime-generated tags); that's the Blits ceiling.
 function buildSections(): Section[] {
   const config = getBootConfig();
   const children = config.layout?.root?.children ?? [];
@@ -47,6 +56,7 @@ function buildSections(): Section[] {
       (n) =>
         n.type === "widget" &&
         typeof n.widget === "string" &&
+        CONTENT_WIDGETS[n.widget] !== undefined &&
         (!n.feature || isFeatureEnabled(config.features, n.feature)),
     )
     .map((n) => ({ label: n.label ?? (n.widget as string), widget: n.widget as string }));
@@ -76,7 +86,7 @@ function playFocused(s: AppThis): void {
 // focus: `column` says which side owns up/down. left/right cross columns; up/down
 // move within the focused column; enter (in the nav column) switches the view.
 export default Blits.Application({
-  components: { Itinerary, Movies, SideNav },
+  components: { ...contentComponents, SideNav },
   template: `
     <Element w="1920" h="1080" color="$background">
       <SideNav :navIndex="$navIndex" :active="$navActive" :items="$navItems" panel="$panel" accent="$accent" text="$text" />
