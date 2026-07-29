@@ -43,22 +43,33 @@ A build is one **cell**: `nx build samsung --customer=ccl --profile=tizen6`.
 | `signing/` | `signing.example.json` (template). Real creds in gitignored `.signing.local.json`. |
 
 ### Key libs
-`core` (bootstrap/composition root) · `runtime-config` (tenant config loader +
-remote override) · `layout` (server-driven layout + renderer) · `widget-registry`
-· `navigation` (keymap → `xtv:action`) · `muting` (audio muting, ports & adapters)
-· `service-gateway` + `integrations/*` (backend adapters: xmm, liferay,
-remote-control) · `websocket` · `diagnostics` (overlay) · `player` (ports &
-adapters: avplay / Android bridge / HTML5) · `feature-flags` · `themes` · `i18n` · `storage` (persistence + Blits appState).
+`core` (bootstrap/composition root + the root Blits `App` in `src/app.ts`) ·
+`widgets` (**Blits content components** + the `CONTENT_WIDGETS` registry — the
+render path) · `runtime-config` (tenant config loader + remote override) ·
+`navigation` (per-platform keymaps → Blits input via `toBlitsKeymap`) · `muting`
+(audio muting, ports & adapters) · `service-gateway` + `integrations/*` (backend
+adapters: xmm, liferay, remote-control) · `websocket` · `diagnostics` (overlay,
+PIN-gated) · `player` (ports & adapters: avplay+DRM / Android bridge / HTML5) ·
+`feature-flags` · `themes` · `i18n` · `storage` (persistence + Blits appState) ·
+`layout` (DOM `CustomerLayout` TYPE only — not the render path; see decision 8).
 
 ## Bootstrap flow (`libs/core/src/index.ts`)
 
 1. `createRuntimeConfigLoader().load()` — imports the **one** bundled tenant
    config, fetches the head-end override, deep-merges.
-2. Build device info + diagnostics overlay.
-3. `applyAndRender(config)` — service gateway → active layout → render `#app` →
-   attach navigation. **Re-callable** for hot config apply.
-4. `connectLiveConfig()` — on `config.updated` ws push, re-pull + re-apply (no reboot).
-5. `connectMuting()` — if `audioMuting` flag + `mutingService` URL, wire the muting controller.
+2. `service-gateway` resolves the active layout (local, or head-end xmm/liferay);
+   `setBootConfig()` snapshots the resolved config for the Blits app to read via
+   `getBootConfig()`.
+3. Build device info + diagnostics overlay; **mount diagnostics BEFORE launch** so
+   on-device errors surface even if Blits fails.
+4. Register the Blits `appState` plugin (seeded from config), then
+   `Blits.Launch(App, "app", { fonts, keymap, … })` mounts the root Application
+   (`libs/core/src/app.ts`).
+5. `connectLiveConfig()` — on `config.updated` ws push: re-pull config + layout,
+   `setBootConfig()`, dispatch `xtv:config-updated`; the app re-derives its
+   reactive state **in place, no reload** (decision 3). Reload = fallback only.
+6. `connectMuting()` — if `audioMuting` flag + `mutingService` URL, wire the muting
+   controller (`audio.mute` → full-screen announcement overlay).
 
 ## Commands
 
@@ -80,10 +91,13 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 2. **Head-end config override** — bundled config is the fallback; at boot the app
    fetches `integrations.configUrl` and deep-merges it on top. Config changes ship
    **without a rebuild**. Fetch fails → bundled defaults.
-3. **Hot reload, no TV reboot** — head-end pushes `{type:"config.updated"}` on the
-   tenant websocket → re-pull + re-render in place. Soft `location.reload()` fallback.
-   (Keymap changes currently need the soft reload; layout/theme/features/endpoints
-   apply hot.) Full mechanism: `docs/config-hot-reload.md`.
+3. **Reactive hot-apply, no reload** — head-end pushes `{type:"config.updated"}` →
+   core re-pulls config + layout, refreshes the boot-config snapshot, fires a DOM
+   `xtv:config-updated` event; the Blits `App` re-derives theme / nav (order,
+   labels, gating) / routes / `dataSource` URLs **in place** (`app.ts` `deriveUi()`
+   + `hooks.ready`), so Blits re-renders with **no reload**. Keymap + fonts still
+   need a reload (set once at `Blits.Launch`). `location.reload()` is a fallback
+   only if the re-pull throws. Full mechanism: `docs/config-hot-reload.md`.
 4. **Per-brand isolation (GDPR) — CRITICAL.** Each build compiles in **exactly one**
    tenant. The slug is resolved **build-time only** (`tools/packaging/customer-slug.mjs`,
    never bundled); Vite aliases `@x-tv/tenant/{config,layout}` to that one tenant's
@@ -99,15 +113,16 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 7. **Ports & adapters** for platform capabilities (see `libs/muting`): a
    platform-agnostic controller depends on an interface; each platform supplies an
    adapter. Add a platform = new adapter, controller untouched.
-8. **UI render layer = Blits** (`@lightningjs/blits`, LightningJS canvas). `libs/core`
-   `Blits.Launch(App, "app", …)` mounts the root Blits Application (`libs/core/src/app.ts`);
-   widgets are Blits components (`libs/widgets/src/components/*.component.ts`). The old
-   DOM `layout`/`widget-registry` path is retained (still typechecks, feeds the
-   `CustomerLayout` type) but is **not** the render path — it will be reworked into a
-   Blits-native dynamic layout engine. **Transitional:** the foundation renders one
-   known widget (hero) from config; fully config-driven multi-widget + feature-gated
-   Blits layout, keymap→Blits input, and Blits-reactive hot-apply (currently a soft
-   reload) are follow-ups.
+8. **UI render layer = Blits** (`@lightningjs/blits`, LightningJS canvas).
+   `Blits.Launch(App, "app", …)` mounts the root Application (`libs/core/src/app.ts`)
+   = the **guest portal**: a persistent side-nav (Home/Movies/…) + content widgets.
+   The **root App owns the D-pad** — two-column focus (nav column ⇄ content column;
+   up/down within the focused column, left/right cross, enter switches/plays) with
+   **no child focus** (input stays on the default-focused root). Widgets are Blits
+   components (`libs/widgets/src/components/*.component.ts`). Content is config-driven
+   via `home.json` + the widget registry (decision 11). The old DOM
+   `layout`/`widget-registry` path is retained **only** to feed the `CustomerLayout`
+   type — not the render path.
 9. **State & storage.** Local/UI state = Blits component `state()`. Global reactive
    state = Blits `appState` plugin (registered in core, seeded from config; read via
    `this.$appState`). Persistence = `@x-tv/storage` `createStorage(namespace)` — a
@@ -124,18 +139,71 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
     owned + runtime-overridable). Packager precedence: `--version` > `XTV_APP_VERSION`
     (CI) > `release.json` > root `package.json`. Don't pass `--version` through
     `nx build` — nx swallows it; use `XTV_APP_VERSION` for CI.
+11. **Config-driven portal = widget registry + `home.json`.** `libs/widgets` exports
+    `CONTENT_WIDGETS` (widget name → Blits component) — the per-build registry.
+    `customers/<line>/layouts/home.json` describes the portal: `root.children` are
+    `widget` nodes `{ widget, label, feature?, dataSource? }`. The App (`deriveUi` /
+    `buildSections` in `app.ts`) keeps nodes whose `widget` is in the registry AND
+    whose `feature` gate passes, then builds the side-nav + routes from them. So a
+    tenant/head-end controls **which** of the build's widgets appear, their **order,
+    labels, feature-gating, and data source** — all from config, no code.
+    `node.dataSource` = a full URL **or** a key into `config.services` (endpoints
+    stay in `config.json`; layout references by name); omitted → `<widget>Url`.
+    **Blits CEILING (why it's not fully data-driven):** Blits **precompiles the
+    `template` at build** (must be a static string literal — no runtime-generated
+    tags), component tags must be **Capitalized**, `<Component is>` resolves **once**
+    (not reactive), and the Blits **Router auto-focuses pages** (fights the
+    persistent nav). So a **new widget TYPE** needs: a Blits component + a
+    `CONTENT_WIDGETS` entry + a **static `<Tag :show=…>` line** in `app.ts` template
+    + a `home.json` reference. Config selects/orders/gates among build-listed
+    widgets; it cannot introduce new types.
+12. **Player = ports & adapters** (`libs/player`). `createPlayerAdapter(platform)` →
+    avplay (Samsung) / Android bridge / HTML5 (webOS + dev). Enter on a movie card
+    plays its stream, Back stops. **PROIDIOM DRM** (Samsung): avplay handshake
+    `open → setDrm("PROIDIOM","Initialize",…) → prepare → play` (ported from legacy
+    CCL), plus the `.MPG→.mpg` Tizen quirk. avplay draws on a **hardware plane behind
+    the Blits canvas** → on play we hide the canvas + make the page transparent so
+    video shows (`showVideoPlane`), restored on stop. LYNK DRM = follow-up (needs a
+    key-server in config). Encryption flows movie payload → `PlayEntry.drm` →
+    appState → App → `player.load(url, drm)`.
+13. **Fonts = build-time brand asset, NOT head-end config.** `customers/<line>/
+    fonts.json` via the `@x-tv/tenant/fonts` alias (same pattern as config/layout).
+    MSDF atlases for canvas text — CSS/`@font-face` never applies to the WebGL
+    canvas. Not runtime-overridable (like `release.json`).
+14. **Old-TV transpile floor.** All three app `vite.config.ts` set `build.target`
+    **and** `esbuild.target` `"chrome76"` (Tizen 6.5 = Chromium M76). Without it the
+    bundle ships `??`/`?.`/`??=` untranspiled → M76 parse-error → **blank screen**.
+    `apps/<p>-tv/src/polyfills.ts` (Array/String `.at`, String `.replaceAll`) is
+    imported **first** in each `main.ts` for vendored code. Residual modern syntax
+    survives only inside Blits' runtime-codegen strings (`new Function`'d) — the
+    suspect if the oldest panels still blank after this.
 
 ## How to…
 
 - **Add a cruiseline:** create `customers/<slug>/config.json` + `layouts/home.json`
-  (+ `assets/`, `i18n/`); add its head-end alias to `tools/packaging/customer-slug.mjs`
-  only. Build: `nx build samsung --customer=<slug>`.
-- **Add a widget:** register in `libs/widget-registry`, reference it in the tenant's
-  `layouts/home.json`, optionally gate with `node.feature` + a flag.
-- **Add a platform:** new `apps/<p>-tv/` shell, `platforms/<p>/{profiles,templates}`,
-  a packager branch in `tools/packaging/package-tv.mjs`, and platform adapters
-  (audio, keymap base in `libs/navigation`).
-- **Sign:** see `docs/signing.md`.
+  + `fonts.json` (+ `assets/`, `i18n/`, `release.json`); add its head-end alias to
+  `tools/packaging/customer-slug.mjs` only. Build: `nx build samsung --customer=<slug>`.
+  (Figma design → `home.json` sections + widget props + theme tokens.)
+- **Add a content widget (NEW type):** (1) write `libs/widgets/src/components/
+  <name>.component.ts` (Blits, props for the superset the App passes: `active`,
+  `focusIndex`/`railFocus`/`colFocus`, `url`, theme colors); (2) add it to
+  `CONTENT_WIDGETS` in `libs/widgets/src/index.ts`; (3) add a **static**
+  `<Name :show="$show…" …>` tag to the `app.ts` template + its show/url wiring
+  (Blits templates are precompiled — no dynamic tags, see decision 11); (4)
+  reference `{ widget:"<name>", label, dataSource?, feature? }` in a tenant's
+  `home.json`. Steps 1-3 are engineering; step 4 is per-tenant config.
+- **Change the portal without a rebuild:** edit the tenant's `home.json` (reorder /
+  relabel / feature-gate / repoint `dataSource`) or `config.json` (theme, endpoints)
+  on the head-end and push `config.updated` — the app hot-applies (decision 3). No
+  new widget types this way (those need a build).
+- **Add a platform:** new `apps/<p>-tv/` shell (+ `polyfills.ts`, `public/.gitkeep`,
+  `build.target` in `vite.config.ts`), `platforms/<p>/{profiles,templates}`, a
+  packager branch in `tools/packaging/package-tv.mjs`, and platform adapters
+  (player in `libs/player`, audio in `libs/muting`, keymap base in `libs/navigation`).
+- **Sign:** see `docs/signing.md`. Build + sign one Samsung `.wgt`:
+  `XTV_CCL_TIZEN_PROFILE=<cert-profile> npm run build:samsung -- --customer=ccl --sssp=<ver>`
+  (bump `--sssp` to force URL-Launcher re-download). Artifacts land in
+  `dist/platforms/samsung/ccl/tizen6/artifacts/` (`.wgt` + `sssp_config.xml`).
 
 ## Gotchas / carry-forward warnings
 
@@ -145,6 +213,22 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 - **Tizen emulator does not run on Apple Silicon** — verify Samsung on real hardware.
 - **Samsung `$B2BAPIS`/avplay** may need the MDC/B2B install channel even with a
   partner cert; signing alone doesn't grant it.
+- **Samsung dev/partner cert is DUID-LOCKED.** `ccl-dev-blits-samsung` runs only on
+  TVs whose DUID is registered in the Samsung Certificate. A build that works on the
+  dev TV (HG32F800) will **blank / refuse** on other sets — including other Tizen 9
+  models — until their DUIDs are added, or a fleet distributor cert (LYNK/Pro:Centric
+  partner, not DUID-locked) is used. **Rule out the cert before chasing a code bug**
+  when "works on one TV, blank on others (same Tizen version)."
+- **Blits templates are PRECOMPILED at build** (`vite/preCompiler`) — the `template:`
+  value must be a static string literal. No runtime-generated/interpolated tags;
+  component tags must be **Capitalized**; `<Component is="$x">` resolves once (not
+  reactive). See decision 11.
+- **avplay video is behind the canvas.** On Tizen the movie plays on a hardware plane
+  under the Blits WebGL canvas; the canvas must be hidden/transparent while playing
+  or the movie is invisible (`showVideoPlane` in `libs/player`).
+- **Old TV web engines** (Tizen 6.5 = M76) need `build.target: chrome76` +
+  `polyfills.ts` (decision 14). Residual `?.` inside Blits' `new Function` codegen
+  strings can still trip the very oldest engines — the last suspect after the cert.
 - **Android native bridge** (`globalThis.xtvAndroid`) is a TODO — the muting audio
   adapter and diagnostics device-info no-op on Android until the Kotlin
   `@JavascriptInterface` bridge is built.
