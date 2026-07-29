@@ -163,6 +163,13 @@ async function applyRemoteOverride(bundled: TenantConfigFile): Promise<TenantCon
     return bundled;
   }
 
+  // Boot BLOCKS on this fetch (bootstrap awaits it before Blits.Launch), and a
+  // hanging/cold head-end on first boot left the screen on the dark HTML bg with
+  // no Blits content ("boot blank until a reload"). Bound it with a timeout so
+  // boot always proceeds to render (bundled fallback) — a slow head-end can never
+  // block first paint.
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : undefined;
+  const timer = controller ? setTimeout(() => controller.abort(), 4000) : undefined;
   try {
     // Cache-bust: some TV webviews ignore `cache: "no-store"` and serve a stale
     // config, so a head-end change (e.g. theme) never re-pulls on the device even
@@ -171,6 +178,7 @@ async function applyRemoteOverride(bundled: TenantConfigFile): Promise<TenantCon
     const response = await fetch(bustUrl, {
       cache: "no-store",
       headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+      signal: controller?.signal,
     });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -178,8 +186,12 @@ async function applyRemoteOverride(bundled: TenantConfigFile): Promise<TenantCon
     const remote = (await response.json()) as Partial<TenantConfigFile>;
     return deepMerge(bundled, remote) as TenantConfigFile;
   } catch (error) {
-    console.warn(`Remote config fetch failed (${url}); using bundled defaults.`, error);
+    console.warn(`Remote config fetch failed/timed out (${url}); using bundled defaults.`, error);
     return bundled;
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
   }
 }
 
