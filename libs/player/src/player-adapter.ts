@@ -149,10 +149,17 @@ function createAvplayPlayer(): PlayerAdapter {
       status = "loading";
       // Tizen 6 avplay chokes on an upper-case .MPG extension (legacy CCL quirk).
       const src = url.replace(/\.MPG(\?|$)/, ".mpg$1");
+      // Tear down ANY prior session before opening — an open-but-not-closed
+      // avplay leaks a second audio stream ("two voices"). Guard on any non-idle
+      // state (NONE/IDLE need no teardown; stop() also closes now).
       const state = avplay.getState?.();
-      if (state === "PLAYING" || state === "PAUSED") {
-        avplay.stop();
-        avplay.close();
+      if (state && state !== "NONE" && state !== "IDLE") {
+        try {
+          avplay.stop();
+          avplay.close();
+        } catch {
+          /* already torn down */
+        }
       }
       avplay.open(src);
       avplay.setDisplayRect(0, 0, 1920, 1080);
@@ -179,7 +186,13 @@ function createAvplayPlayer(): PlayerAdapter {
     },
     async stop() {
       status = "stopped";
-      avplay.stop();
+      // stop AND close — leaving it open leaks audio into the next play.
+      try {
+        avplay.stop();
+        avplay.close();
+      } catch {
+        /* already stopped/closed */
+      }
       showVideoPlane(false);
     },
     getStatus() {

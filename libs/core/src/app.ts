@@ -128,6 +128,13 @@ function playFocused(s: AppThis): void {
   player.load(card.url, drm).then(() => player?.play());
 }
 
+// In playback (fullscreen video over the hidden canvas), the D-pad drives the
+// PLAYER, not the grid: OK toggles pause/resume, Back stops → back to the grid.
+function inPlayback(): boolean {
+  const st = player?.getStatus();
+  return st === "playing" || st === "paused";
+}
+
 // Root Blits Application = guest-portal shell. The root is focused by default, so
 // its input handlers receive the remote D-pad. Two-column focus WITHOUT child
 // focus: `column` says which side owns up/down. left/right cross columns; up/down
@@ -190,6 +197,9 @@ export default Blits.Application({
   },
   input: {
     up() {
+      if (inPlayback()) {
+        return;
+      }
       const s = this as unknown as AppThis;
       if (s.column === "nav") {
         s.navIndex = Math.max(0, s.navIndex - 1);
@@ -201,6 +211,9 @@ export default Blits.Application({
       }
     },
     down() {
+      if (inPlayback()) {
+        return;
+      }
       const s = this as unknown as AppThis;
       if (s.column === "nav") {
         s.navIndex = Math.min(s.routes.length - 1, s.navIndex + 1);
@@ -214,6 +227,9 @@ export default Blits.Application({
       }
     },
     left() {
+      if (inPlayback()) {
+        return;
+      }
       const s = this as unknown as AppThis;
       // In a movie rail, walk left through cards; at the first card, exit to the menu.
       if (s.column === "content" && s.route === "movies" && s.colIndex > 0) {
@@ -223,6 +239,9 @@ export default Blits.Application({
       }
     },
     right() {
+      if (inPlayback()) {
+        return;
+      }
       const s = this as unknown as AppThis;
       if (s.column === "nav") {
         // Enter the content column — only where there is something to navigate.
@@ -242,6 +261,15 @@ export default Blits.Application({
     },
     enter() {
       const s = this as unknown as AppThis;
+      if (inPlayback()) {
+        // OK during playback = pause/resume toggle (not restart).
+        if (player?.getStatus() === "playing") {
+          player.pause();
+        } else {
+          player?.play();
+        }
+        return;
+      }
       if (s.column === "nav") {
         s.route = s.routes[s.navIndex] ?? s.routes[0] ?? "itinerary";
         s.contentIndex = 0;
@@ -253,8 +281,10 @@ export default Blits.Application({
       }
     },
     back() {
-      // Stop playback and return to the grid.
-      player?.stop();
+      // Stop playback and return to the grid (adapter stops + closes → no leak).
+      if (inPlayback()) {
+        player?.stop();
+      }
     },
   },
 });
