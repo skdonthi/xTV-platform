@@ -5,8 +5,8 @@
     "id": "portal",
     "type": "screen",
     "children": [
-      { "id": "sec-home", "type": "widget", "widget": "itinerary", "label": "Home" },
-      { "id": "sec-movies", "type": "widget", "widget": "movies", "label": "Movies" }
+      { "id": "sec-home", "type": "widget", "widget": "itinerary", "label": "Home", "dataSource": "itineraryUrl" },
+      { "id": "sec-movies", "type": "widget", "widget": "movies", "label": "Movies", "dataSource": "moviesUrl" }
     ]
   }
 }

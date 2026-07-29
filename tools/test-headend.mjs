@@ -9,7 +9,7 @@ import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 
 const PORT = 9099;
-let theme = "carnival-night"; // what GET /config/ccl.json currently serves
+let theme = "carnival-day"; // what GET /config/ccl.json currently serves
 
 const http = createServer((req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*"); // app runs under file:// (origin null)

@@ -57,9 +57,11 @@ export async function bootstrapTvPlatform(
   runtimeConfig.layout = await services.layout.getActiveLayout(runtimeConfig.layout);
   setBootConfig(runtimeConfig);
 
-  // Head-end can push {"type":"config.updated"} to re-pull config. With the Blits
-  // canvas we soft-reload to re-launch (Blits-reactive in-place hot-apply — update
-  // app state instead of reload — is the next step).
+  // Head-end pushes {"type":"config.updated"} to apply a config/layout change.
+  // We re-pull config + layout, refresh the boot-config snapshot, and fire a DOM
+  // event; the Blits app re-derives its reactive state in place (see app.ts
+  // hooks.ready) — NO reload. Reload stays only as a fallback if re-pull throws.
+  // (Keymap/font changes still need a reload — they're set once at Blits.Launch.)
   function connectLiveConfig(): void {
     const wsUrl = runtimeConfig.realtime.websocketUrl;
     if (!runtimeConfig.features.websocketEvents || !wsUrl) {
@@ -67,8 +69,13 @@ export async function bootstrapTvPlatform(
     }
     const bus = createWebsocketEventBus();
     bus.connect(wsUrl);
+    // Reload to apply. In-place hot-apply (re-derive appState, no reload) works in
+    // the dev browser but NOT on the Tizen renderer — theme/layout changes didn't
+    // repaint on-device, while a full reload "worked like a charm" (matches the
+    // pre-migration behavior). So config.updated = reload; the reactive bindings +
+    // derive() stay for boot and future in-place work once we can debug on-device.
     bus.on("config.updated", () => {
-      console.info("xTV config.updated — reloading");
+      console.info("xTV config.updated — reloading to apply");
       globalThis.location?.reload();
     });
   }

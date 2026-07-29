@@ -86,14 +86,25 @@ export default Blits.Component("Itinerary", {
   },
   hooks: {
     async ready() {
-      const self = this as unknown as {
-        url: string;
-        ports: PortRow[];
-        $appState: { itineraryCount: number };
-      };
-      self.ports = await loadItinerary(self.url);
-      // Publish the row count so the root App can clamp Down within the list.
-      self.$appState.itineraryCount = self.ports.length;
+      await refresh(this as unknown as ItineraryThis, (this as unknown as ItineraryThis).url);
+    },
+  },
+  // Re-fetch when the data URL changes on hot-apply (config.updated → new endpoint).
+  watch: {
+    async url(next: string) {
+      await refresh(this as unknown as ItineraryThis, next);
     },
   },
 });
+
+interface ItineraryThis {
+  url: string;
+  ports: PortRow[];
+  $appState: { itineraryCount: number };
+}
+
+async function refresh(self: ItineraryThis, url: string): Promise<void> {
+  self.ports = await loadItinerary(url);
+  // Publish the row count so the root App can clamp Down within the list.
+  self.$appState.itineraryCount = self.ports.length;
+}

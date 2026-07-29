@@ -2,8 +2,17 @@ import Blits from "@lightningjs/blits";
 import { isFeatureEnabled } from "@x-tv/feature-flags";
 import { type DrmType, type PlayerAdapter, createPlayerAdapter } from "@x-tv/player";
 import { getTheme } from "@x-tv/themes";
-import { Itinerary, Movies, SideNav } from "@x-tv/widgets";
+import { CONTENT_WIDGETS, SideNav } from "@x-tv/widgets";
 import { getBootConfig } from "./boot-config";
+
+// Register content widgets from the registry under capitalized tag names (Blits
+// only resolves capitalized tags as components, and precompiles templates at
+// build so the tags must be static — see the template below). The registry is
+// still the single source of name→component + home.json validation.
+const contentComponents: Record<string, unknown> = {};
+for (const [name, component] of Object.entries(CONTENT_WIDGETS)) {
+  contentComponents[name.charAt(0).toUpperCase() + name.slice(1)] = component;
+}
 
 interface PlayEntry {
   rail: number;
@@ -16,6 +25,7 @@ interface PlayEntry {
 interface Section {
   label: string;
   widget: string;
+  dataSource?: string;
 }
 interface NavItem {
   label: string;
@@ -33,12 +43,12 @@ type AppThis = {
   $appState: { itineraryCount: number; movieRailSizes: number[]; movieCards: PlayEntry[] };
 };
 
-// SPIKE: derive the portal's sections from the tenant layout (home.json) instead
-// of hardcoding them. Each `widget` section becomes a nav entry + a view; a
-// section can be feature-gated. The widget→component mapping is still static
-// (Blits has no dynamic-component tag yet) — a config `widget` name only shows if
-// this app knows the component. That's the boundary to resolve if we commit to
-// this direction: a Blits widget registry for fully data-driven rendering.
+// Sections come from the tenant layout (home.json): each `widget` node that this
+// build actually knows (present in CONTENT_WIDGETS) and passes its feature gate
+// becomes a nav entry + a view. So a tenant drives nav order/labels/gating and
+// which of the build's widgets appear — all from config, no code change. Adding a
+// NEW widget TYPE still needs a component + a static template tag (Blits
+// precompiles templates → no runtime-generated tags); that's the Blits ceiling.
 function buildSections(): Section[] {
   const config = getBootConfig();
   const children = config.layout?.root?.children ?? [];
@@ -47,9 +57,56 @@ function buildSections(): Section[] {
       (n) =>
         n.type === "widget" &&
         typeof n.widget === "string" &&
+        CONTENT_WIDGETS[n.widget] !== undefined &&
         (!n.feature || isFeatureEnabled(config.features, n.feature)),
     )
-    .map((n) => ({ label: n.label ?? (n.widget as string), widget: n.widget as string }));
+    .map((n) => ({
+      label: n.label ?? (n.widget as string),
+      widget: n.widget as string,
+      dataSource: n.dataSource,
+    }));
+}
+
+// Resolve a section's data URL: explicit node.dataSource (full URL, or a key into
+// the tenant's integrations), else the `<widget>Url` convention. Keeps endpoints
+// in config while letting the layout point a widget at any source.
+function resolveDataSource(section: Section, services: Record<string, string | undefined>): string {
+  const ds = section.dataSource;
+  if (ds && /^https?:\/\//.test(ds)) {
+    return ds;
+  }
+  if (ds) {
+    return services[ds] ?? "";
+  }
+  return services[`${section.widget}Url`] ?? "";
+}
+
+// Project the current (boot or hot-applied) config into the reactive UI state:
+// theme colors, nav items/routes (from home.json), and per-widget data URLs.
+// Called at state() init AND on hot-apply, so a head-end config/layout change
+// re-renders in place with no reload.
+function deriveUi() {
+  const config = getBootConfig();
+  const theme = getTheme(config.theme);
+  const sections = buildSections();
+  const services = config.services as unknown as Record<string, string | undefined>;
+  // Per-widget data URL from node.dataSource (see resolveDataSource). Template
+  // tags are static, so the two known widgets read their own url key.
+  const urlByWidget: Record<string, string> = {};
+  for (const section of sections) {
+    urlByWidget[section.widget] = resolveDataSource(section, services);
+  }
+  return {
+    background: theme.colors.background,
+    text: theme.colors.text,
+    textMuted: theme.colors.textMuted,
+    accent: theme.colors.accent,
+    panel: theme.colors.surface,
+    navItems: sections.map((s, i) => ({ label: s.label, y: 260 + i * 88 })) as NavItem[],
+    routes: sections.map((s) => s.widget),
+    itineraryUrl: urlByWidget.itinerary ?? "",
+    moviesUrl: urlByWidget.movies ?? "",
+  };
 }
 
 // One player for the app lifetime; the adapter picks avplay (Samsung, needs the
@@ -71,47 +128,60 @@ function playFocused(s: AppThis): void {
   player.load(card.url, drm).then(() => player?.play());
 }
 
+// In playback (fullscreen video over the hidden canvas), the D-pad drives the
+// PLAYER, not the grid: OK toggles pause/resume, Back stops → back to the grid.
+function inPlayback(): boolean {
+  const st = player?.getStatus();
+  return st === "playing" || st === "paused";
+}
+
 // Root Blits Application = guest-portal shell. The root is focused by default, so
 // its input handlers receive the remote D-pad. Two-column focus WITHOUT child
 // focus: `column` says which side owns up/down. left/right cross columns; up/down
 // move within the focused column; enter (in the nav column) switches the view.
 export default Blits.Application({
-  components: { Itinerary, Movies, SideNav },
+  components: { ...contentComponents, SideNav },
   template: `
     <Element w="1920" h="1080" color="$background">
       <SideNav :navIndex="$navIndex" :active="$navActive" :items="$navItems" panel="$panel" accent="$accent" text="$text" />
       <Element x="360">
-        <Itinerary :show="$showItinerary" :focusIndex="$contentIndex" :active="$contentActive" background="$background" text="$text" accent="$accent" url="$itineraryUrl" />
-        <Movies :show="$showMovies" :active="$contentActive" :railFocus="$railIndex" :colFocus="$colIndex" background="$background" accent="$accent" textMuted="$textMuted" text="$text" url="$moviesUrl" />
+        <Itinerary :show="$showItinerary" :focusIndex="$contentIndex" :active="$contentActive" background="$background" text="$text" accent="$accent" :url="$itineraryUrl" />
+        <Movies :show="$showMovies" :active="$contentActive" :railFocus="$railIndex" :colFocus="$colIndex" background="$background" accent="$accent" textMuted="$textMuted" text="$text" :url="$moviesUrl" />
       </Element>
     </Element>
   `,
   state() {
-    const config = getBootConfig();
-    const theme = getTheme(config.theme);
-    const sections = buildSections();
-    const routes = sections.map((s) => s.widget);
-    const navItems: NavItem[] = sections.map((s, i) => ({ label: s.label, y: 260 + i * 88 }));
+    const ui = deriveUi();
     return {
-      background: theme.colors.background,
-      text: theme.colors.text,
-      textMuted: theme.colors.textMuted,
-      accent: theme.colors.accent,
-      panel: theme.colors.surface,
-      // Nav + routing come from home.json (see buildSections).
-      navItems,
-      routes,
+      ...ui,
       navIndex: 0,
-      route: routes[0] ?? "itinerary",
+      route: ui.routes[0] ?? "itinerary",
       // "nav" = side menu owns up/down; "content" = the view owns up/down/left/right.
       column: "nav" as "nav" | "content",
       contentIndex: 0, // itinerary row
       railIndex: 0, // movie rail (vertical)
       colIndex: 0, // movie card within rail (horizontal)
-      // ponytail: service URLs live in tenant config integrations; services spreads them.
-      itineraryUrl: (config.services as unknown as { itineraryUrl?: string }).itineraryUrl ?? "",
-      moviesUrl: (config.services as unknown as { moviesUrl?: string }).moviesUrl ?? "",
     };
+  },
+  hooks: {
+    ready() {
+      // Hot-apply: core re-pulls config/layout on a head-end `config.updated` push
+      // and fires this event. Re-derive the config-driven state in place — Blits
+      // re-renders on state assignment, so NO reload (retires location.reload()).
+      globalThis.addEventListener?.("xtv:config-updated", () => {
+        const ui = deriveUi();
+        const s = this as unknown as AppThis & Record<string, unknown>;
+        Object.assign(s, ui);
+        if (s.navIndex >= s.routes.length) {
+          s.navIndex = 0;
+        }
+        s.route = s.routes[s.navIndex] ?? s.routes[0] ?? "";
+        s.column = "nav";
+        // Log the applied theme so on-TV diagnostics show stale-fetch (old theme)
+        // vs a render issue (new theme but no visual change).
+        console.info(`xTV config hot-applied (no reload) theme=${getBootConfig().theme}`);
+      });
+    },
   },
   computed: {
     showItinerary() {
@@ -129,6 +199,9 @@ export default Blits.Application({
   },
   input: {
     up() {
+      if (inPlayback()) {
+        return;
+      }
       const s = this as unknown as AppThis;
       if (s.column === "nav") {
         s.navIndex = Math.max(0, s.navIndex - 1);
@@ -140,6 +213,9 @@ export default Blits.Application({
       }
     },
     down() {
+      if (inPlayback()) {
+        return;
+      }
       const s = this as unknown as AppThis;
       if (s.column === "nav") {
         s.navIndex = Math.min(s.routes.length - 1, s.navIndex + 1);
@@ -153,6 +229,9 @@ export default Blits.Application({
       }
     },
     left() {
+      if (inPlayback()) {
+        return;
+      }
       const s = this as unknown as AppThis;
       // In a movie rail, walk left through cards; at the first card, exit to the menu.
       if (s.column === "content" && s.route === "movies" && s.colIndex > 0) {
@@ -162,6 +241,9 @@ export default Blits.Application({
       }
     },
     right() {
+      if (inPlayback()) {
+        return;
+      }
       const s = this as unknown as AppThis;
       if (s.column === "nav") {
         // Enter the content column — only where there is something to navigate.
@@ -181,6 +263,15 @@ export default Blits.Application({
     },
     enter() {
       const s = this as unknown as AppThis;
+      if (inPlayback()) {
+        // OK during playback = pause/resume toggle (not restart).
+        if (player?.getStatus() === "playing") {
+          player.pause();
+        } else {
+          player?.play();
+        }
+        return;
+      }
       if (s.column === "nav") {
         s.route = s.routes[s.navIndex] ?? s.routes[0] ?? "itinerary";
         s.contentIndex = 0;
@@ -192,8 +283,10 @@ export default Blits.Application({
       }
     },
     back() {
-      // Stop playback and return to the grid.
-      player?.stop();
+      // Stop playback and return to the grid (adapter stops + closes → no leak).
+      if (inPlayback()) {
+        player?.stop();
+      }
     },
   },
 });

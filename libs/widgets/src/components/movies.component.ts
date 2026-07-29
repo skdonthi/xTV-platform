@@ -245,19 +245,30 @@ export default Blits.Component("Movies", {
   },
   hooks: {
     async ready() {
-      const self = this as unknown as {
-        url: string;
-        labels: RailLabel[];
-        cards: Card[];
-        $appState: { movieRailSizes: number[]; movieCards: PlayEntry[] };
-      };
-      const rails = await loadRails(self.url);
-      self.labels = rails.labels;
-      self.cards = rails.cards;
-      // Publish per-rail counts (focus clamping) + the (rail,col)→stream lookup
-      // (Enter→player) so the root App owns input without owning movie data.
-      self.$appState.movieRailSizes = rails.sizes;
-      self.$appState.movieCards = rails.play;
+      await refresh(this as unknown as MoviesThis, (this as unknown as MoviesThis).url);
+    },
+  },
+  // Re-fetch when the data URL changes on hot-apply (config.updated → new endpoint).
+  watch: {
+    async url(next: string) {
+      await refresh(this as unknown as MoviesThis, next);
     },
   },
 });
+
+interface MoviesThis {
+  url: string;
+  labels: RailLabel[];
+  cards: Card[];
+  $appState: { movieRailSizes: number[]; movieCards: PlayEntry[] };
+}
+
+async function refresh(self: MoviesThis, url: string): Promise<void> {
+  const rails = await loadRails(url);
+  self.labels = rails.labels;
+  self.cards = rails.cards;
+  // Publish per-rail counts (focus clamping) + the (rail,col)→stream lookup
+  // (Enter→player) so the root App owns input without owning movie data.
+  self.$appState.movieRailSizes = rails.sizes;
+  self.$appState.movieCards = rails.play;
+}

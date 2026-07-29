@@ -1,3 +1,5 @@
+import { createStorage } from "@x-tv/storage";
+
 export type LogLevel = "log" | "info" | "warn" | "error";
 
 export interface LogEntry {
@@ -12,8 +14,21 @@ export interface LogBuffer {
   subscribe(listener: () => void): () => void;
 }
 
+// Persisted so logs survive a reload — config.updated logs then reloads, so the
+// line would otherwise be gone before diagnostics is even opened. Best-effort
+// (storage no-ops if unavailable); kept small.
+const store = createStorage("diag");
+const STORE_KEY = "log";
+
+// Date + time, stable/sortable (YYYY-MM-DD HH:MM:SS) — TVs asked for the date too.
+function stamp(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
 export function createLogBuffer(limit = 80): LogBuffer {
-  const entries: LogEntry[] = [];
+  const entries: LogEntry[] = (store.get<LogEntry[]>(STORE_KEY) ?? []).slice(-limit);
   const listeners = new Set<() => void>();
 
   return {
@@ -24,12 +39,16 @@ export function createLogBuffer(limit = 80): LogBuffer {
       entries.push({
         level,
         message: args.map(formatLogValue).join(" "),
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: stamp(),
       });
 
       while (entries.length > limit) {
         entries.shift();
       }
+
+      // Sync save so the last line (e.g. config.updated) is persisted BEFORE the
+      // reload that immediately follows it.
+      store.set(STORE_KEY, entries);
 
       for (const listener of listeners) {
         listener();
