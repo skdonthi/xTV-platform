@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!-- Throwaway manual test: play a video + mute it on head-end muting signals (STOMP).
+     Edit the CONFIG block, open in Chrome (must reach the message-gateway host).
+     ponytail: standalone test page, not app code. Integrate into libs/muting only
+     after this proves the head-end + player work. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Muting + Player test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+    <style>
+      html,body{margin:0;height:100%;background:#000;color:#fff;font-family:sans-serif}
+      video{width:100%;height:100%;object-fit:contain}
+      #hud{position:fixed;top:12px;left:12px;padding:8px 12px;background:rgba(0,0,0,.6);font-size:20px;border-radius:6px;white-space:pre}
+    </style>
+  </head>
+  <body>
+    <div id="hud">connecting…</div>
+    <video id="v" autoplay muted playsinline></video>
+    <script>
+      // ---- CONFIG (edit) ----------------------------------------------------
+      const WS_URL      = "ws://10.100.0.16:8061/ws/stomp"; // STOMP endpoint
+      const CABIN       = "9201";
+      const DEVICE_ID   = "0";
+      const DEVICE_MAC  = "EE:6F:67:99:1A:3E";
+      const MUTING_GROUP= "pax";
+      const VIDEO_URL   = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"; // swap for a real stream
+      // ----------------------------------------------------------------------
+
+      const hud = document.getElementById("hud");
+      const v = document.getElementById("v");
+      v.src = VIDEO_URL;
+      v.muted = false; // start audible so muting is observable
+
+      const client = new StompJs.Client({
+        brokerURL: WS_URL,
+        connectHeaders: { "cabin-number": CABIN, "device-id": DEVICE_ID, "device-mac": DEVICE_MAC },
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
+      });
+
+      client.onConnect = () => {
+        hud.textContent = "connected · waiting for muting signal";
+        client.subscribe("/user/muting", (msg) => {
+          const m = JSON.parse(msg.body);        // {mute, title, message, group}
+          v.muted = !!m.mute;
+          hud.textContent = `mute=${m.mute}${m.title ? " · " + m.title : ""}`;
+          msg.ack && msg.ack();
+        }, { "muting-group": MUTING_GROUP });
+      };
+      client.onStompError = (f) => { hud.textContent = "STOMP error: " + f.headers.message; };
+      client.onWebSocketError = () => { hud.textContent = "WS error — check WS_URL / network to " + WS_URL; };
+      client.activate();
+    </script>
+  </body>
+</html>

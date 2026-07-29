@@ -19,7 +19,8 @@ export function createDiagnosticsOverlay(options: {
 }): DiagnosticsOverlay {
   const banner = createBanner(options.deviceInfo);
   const consolePanel = createConsolePanel(options.config);
-  const renderLogs = () => renderLogEntries(consolePanel, options.logBuffer.entries());
+  const renderLogs = () =>
+    renderLogEntries(consolePanel, options.logBuffer.entries());
   const pinBuffer = createPinBuffer(options.config);
   let mounted = false;
 
@@ -34,15 +35,21 @@ export function createDiagnosticsOverlay(options: {
       mounted = true;
       document.body.append(banner, consolePanel);
       renderLogs();
-      window.addEventListener("keydown", (event) => {
-        if (shouldToggleConsole(event, options.config, pinBuffer)) {
-          event.preventDefault();
-          this.toggleConsole();
-        }
-      });
+      // Capture phase so the PIN digits are seen before Blits' own key handling.
+      window.addEventListener(
+        "keydown",
+        (event) => {
+          if (shouldToggleConsole(event, options.config, pinBuffer)) {
+            event.preventDefault();
+            this.toggleConsole();
+          }
+        },
+        true,
+      );
     },
     toggleConsole() {
-      consolePanel.dataset.visible = consolePanel.dataset.visible === "true" ? "false" : "true";
+      consolePanel.dataset.visible =
+        consolePanel.dataset.visible === "true" ? "false" : "true";
       renderLogs();
     },
   };
@@ -68,7 +75,7 @@ function createConsolePanel(config: DiagnosticsOverlayConfig): HTMLElement {
   panel.innerHTML = `
     <header>
       <strong>xTV diagnostics</strong>
-      <span>PIN ${escapeHtml(config.pin)} | Dev: F2 / D / Info</span>
+      <span>PIN ${escapeHtml(config.pin)} | Dev: D</span>
     </header>
     <pre></pre>
   `;
@@ -84,7 +91,10 @@ function renderLogEntries(panel: HTMLElement, entries: LogEntry[]): void {
   }
 
   output.textContent = entries
-    .map((entry) => `[${entry.timestamp}] ${entry.level.toUpperCase()} ${entry.message}`)
+    .map(
+      (entry) =>
+        `[${entry.timestamp}] ${entry.level.toUpperCase()} ${entry.message}`,
+    )
     .join("\n");
   output.scrollTop = output.scrollHeight;
 }
@@ -104,7 +114,7 @@ function shouldToggleConsole(
     return false;
   }
 
-  return ["F2", "d", "D", "Info", "ColorF0Red"].includes(event.key);
+  return ["d", "D", "ColorF0Red"].includes(event.key);
 }
 
 interface PinBuffer {

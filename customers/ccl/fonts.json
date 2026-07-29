@@ -1,0 +1,8 @@
+{
+  "default": "Open Sans",
+  "families": [
+    { "family": "Tempo Std", "type": "msdf", "file": "fonts/TempoStd-HeavyCondensed.ttf" },
+    { "family": "Open Sans", "type": "msdf", "file": "fonts/opensans-semibold-webfont.ttf" },
+    { "family": "Open Sans Bold", "type": "msdf", "file": "fonts/opensans-bold-webfont.ttf" }
+  ]
+}
