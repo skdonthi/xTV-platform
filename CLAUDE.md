@@ -219,6 +219,13 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
   models — until their DUIDs are added, or a fleet distributor cert (LYNK/Pro:Centric
   partner, not DUID-locked) is used. **Rule out the cert before chasing a code bug**
   when "works on one TV, blank on others (same Tizen version)."
+- **Blits `:attr` is reactive, plain `attr="$x"` is NOT.** `:attr="$x"` compiles to
+  an effect that re-runs on change (`generator.js`); plain `attr="$x"` is
+  interpolated **once at mount**. So anything that must update live (theme colors,
+  data URLs, any hot-applied value) MUST use the colon — including App→child prop
+  bindings. Missing colons = "state changed but the screen didn't" (how the first
+  hot-apply theme/webservice change silently failed). Data widgets also need a
+  `watch(url)` to re-fetch when their endpoint changes.
 - **Blits templates are PRECOMPILED at build** (`vite/preCompiler`) — the `template:`
   value must be a static string literal. No runtime-generated/interpolated tags;
   component tags must be **Capitalized**; `<Component is="$x">` resolves once (not
