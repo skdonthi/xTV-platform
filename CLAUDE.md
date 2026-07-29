@@ -91,13 +91,15 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 2. **Head-end config override** — bundled config is the fallback; at boot the app
    fetches `integrations.configUrl` and deep-merges it on top. Config changes ship
    **without a rebuild**. Fetch fails → bundled defaults.
-3. **Reactive hot-apply, no reload** — head-end pushes `{type:"config.updated"}` →
-   core re-pulls config + layout, refreshes the boot-config snapshot, fires a DOM
-   `xtv:config-updated` event; the Blits `App` re-derives theme / nav (order,
-   labels, gating) / routes / `dataSource` URLs **in place** (`app.ts` `deriveUi()`
-   + `hooks.ready`), so Blits re-renders with **no reload**. Keymap + fonts still
-   need a reload (set once at `Blits.Launch`). `location.reload()` is a fallback
-   only if the re-pull throws. Full mechanism: `docs/config-hot-reload.md`.
+3. **Config apply = reload (on device).** Head-end pushes `{type:"config.updated"}`
+   → core `location.reload()` → boot re-pulls config + layout → new theme/layout/
+   endpoints. This is the proven path ("worked like a charm" on the TV). The
+   in-place reactive hot-apply (`app.ts` `deriveUi()` + `hooks.ready` listening for
+   a `xtv:config-updated` event, with colon-bound reactive attrs) **works in the dev
+   browser but NOT on the Tizen renderer** — state re-derived but the canvas didn't
+   repaint on-device — so it's dormant (kept for boot + future once we can debug
+   on-device). config fetch is cache-busted so reload always gets fresh config.
+   Full mechanism: `docs/config-hot-reload.md`.
 4. **Per-brand isolation (GDPR) — CRITICAL.** Each build compiles in **exactly one**
    tenant. The slug is resolved **build-time only** (`tools/packaging/customer-slug.mjs`,
    never bundled); Vite aliases `@x-tv/tenant/{config,layout}` to that one tenant's

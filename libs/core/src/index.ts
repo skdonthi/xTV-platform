@@ -69,18 +69,14 @@ export async function bootstrapTvPlatform(
     }
     const bus = createWebsocketEventBus();
     bus.connect(wsUrl);
-    bus.on("config.updated", async () => {
-      console.info("xTV config.updated — hot-applying");
-      try {
-        const next = await loader.load();
-        next.layout = await services.layout.getActiveLayout(next.layout);
-        console.info(`xTV re-pulled config, theme=${next.theme}`);
-        setBootConfig(next);
-        globalThis.dispatchEvent?.(new CustomEvent("xtv:config-updated"));
-      } catch (error) {
-        console.error("hot-apply failed; falling back to reload", error);
-        globalThis.location?.reload();
-      }
+    // Reload to apply. In-place hot-apply (re-derive appState, no reload) works in
+    // the dev browser but NOT on the Tizen renderer — theme/layout changes didn't
+    // repaint on-device, while a full reload "worked like a charm" (matches the
+    // pre-migration behavior). So config.updated = reload; the reactive bindings +
+    // derive() stay for boot and future in-place work once we can debug on-device.
+    bus.on("config.updated", () => {
+      console.info("xTV config.updated — reloading to apply");
+      globalThis.location?.reload();
     });
   }
 
