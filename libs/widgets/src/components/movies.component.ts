@@ -1,9 +1,10 @@
 import Blits from "@lightningjs/blits";
 
 // Netflix-style layout constants.
-const RAIL_STEP = 384; // rail vertical pitch (title + poster + gap)
+const RAIL_STEP = 448; // rail vertical pitch (title + poster + gap between genres)
 const COL_STEP = 224; // card horizontal pitch (poster + gap)
 const CARD_TOP = 52; // poster offset below its rail title
+const LEFT_PAD = 8; // inset so the focus frame's left edge isn't clipped at x<0
 // Smooth scroll/focus movement — the "rich web UI" feel.
 const EASE = { duration: 220, easing: "ease-in-out" };
 
@@ -25,6 +26,7 @@ interface PlayEntry {
   col: number;
   url: string;
   title: string;
+  drm: string; // "PROIDIOM" | "LYNK" | "NONE"
 }
 interface Rails {
   labels: RailLabel[];
@@ -38,6 +40,7 @@ interface Movie {
   title?: string;
   poster?: string;
   url?: string;
+  encryption?: string; // "PROIDIOM" | "LYNK" | null
   filmGenre?: string;
   categories?: string[];
 }
@@ -127,10 +130,16 @@ function buildRails(movies: Movie[], origin: string): Rails {
         id: `${i}-${m.id ?? m.title ?? j}`,
         title: m.title ?? "",
         poster: m.poster ? `${origin}${m.poster}` : "",
-        x: j * COL_STEP,
+        x: LEFT_PAD + j * COL_STEP,
         y: railY + CARD_TOP,
       });
-      play.push({ rail: i, col: j, url: m.url ?? "", title: m.title ?? "" });
+      play.push({
+        rail: i,
+        col: j,
+        url: m.url ?? "",
+        title: m.title ?? "",
+        drm: m.encryption || "NONE",
+      });
     });
   });
   return { labels, cards, sizes, play };
@@ -168,14 +177,15 @@ export default Blits.Component("Movies", {
           key="$label.title"
           content="$label.title"
           font="Open Sans"
-          x="0"
+          x="8"
           :y="$label.y"
           size="30"
           color="$textMuted"
         />
         <Element :for="(card, j) in $cards" key="$card.id" :x="$card.x" :y="$card.y">
-          <Element w="200" h="300" color="#16283b" :src="$card.poster" />
-          <Text content="$card.title" font="Open Sans" x="0" y="308" size="22" color="$text" w="200" />
+          <Element w="200" h="300" color="#16283b" />
+          <Element w="200" h="300" :src="$card.poster" />
+          <Text content="$card.title" font="Open Sans" x="0" y="308" size="22" color="$text" maxwidth="200" maxlines="1" textoverflow="..." />
         </Element>
       </Element>
     </Element>
@@ -203,7 +213,7 @@ export default Blits.Component("Movies", {
     },
     hlX() {
       return {
-        value: (this as unknown as { colFocus: number }).colFocus * COL_STEP - 4,
+        value: LEFT_PAD + (this as unknown as { colFocus: number }).colFocus * COL_STEP - 4,
         transition: EASE,
       };
     },

@@ -111,7 +111,13 @@ export async function bootstrapTvPlatform(
         // fetch, the root App reads them to clamp focus within each view.
         itineraryCount: 0,
         movieRailSizes: [] as number[],
-        movieCards: [] as { rail: number; col: number; url: string; title: string }[],
+        movieCards: [] as {
+          rail: number;
+          col: number;
+          url: string;
+          title: string;
+          drm: string;
+        }[],
       });
 
       // Mount diagnostics FIRST so its on-screen console is available even if the

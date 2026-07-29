@@ -1,5 +1,5 @@
 import Blits from "@lightningjs/blits";
-import { type PlayerAdapter, createPlayerAdapter } from "@x-tv/player";
+import { type DrmType, type PlayerAdapter, createPlayerAdapter } from "@x-tv/player";
 import { getTheme } from "@x-tv/themes";
 import { Itinerary, Movies, SideNav } from "@x-tv/widgets";
 import { getBootConfig } from "./boot-config";
@@ -11,6 +11,7 @@ interface PlayEntry {
   col: number;
   url: string;
   title: string;
+  drm: string;
 }
 
 type AppThis = {
@@ -37,8 +38,9 @@ function playFocused(s: AppThis): void {
     return;
   }
   player ??= createPlayerAdapter(getBootConfig().platform.platform);
-  console.info(`play "${card.title}" -> ${card.url}`);
-  player.load(card.url).then(() => player?.play());
+  const drm = (card.drm === "PROIDIOM" || card.drm === "LYNK" ? card.drm : "NONE") as DrmType;
+  console.info(`play "${card.title}" [${drm}] -> ${card.url}`);
+  player.load(card.url, drm).then(() => player?.play());
 }
 
 // Root Blits Application = guest-portal shell. The root is focused by default, so

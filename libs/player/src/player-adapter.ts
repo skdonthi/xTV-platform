@@ -4,8 +4,12 @@
 // for the per-platform APIs (avplay / hcap.Media / ExoPlayer).
 export type PlaybackStatus = "idle" | "loading" | "playing" | "paused" | "stopped";
 
+// Hospitality content DRM. PROIDIOM is Samsung's standard pro:idiom scheme (most
+// of the CCL catalogue); LYNK is the server-keyed variant. NONE = clear stream.
+export type DrmType = "NONE" | "PROIDIOM" | "LYNK";
+
 export interface PlayerAdapter {
-  load(sourceUrl: string): Promise<void>;
+  load(sourceUrl: string, drm?: DrmType): Promise<void>;
   play(): Promise<void>;
   pause(): Promise<void>;
   stop(): Promise<void>;
@@ -26,6 +30,8 @@ type Avplay = {
   pause(): void;
   stop(): void;
   setDisplayRect(x: number, y: number, w: number, h: number): void;
+  setDrm(type: string, operation: string, jsonParams: string): void;
+  getState?(): string;
 };
 
 // Android TV native bridge (ExoPlayer on the Kotlin side) — same bridge the
@@ -64,7 +70,8 @@ function createHtml5Player(): PlayerAdapter {
   }
 
   return {
-    async load(url) {
+    async load(url, _drm) {
+      // HTML5 has no pro:idiom/LYNK support; drm is ignored (dev/webOS clear only).
       status = "loading";
       const element = ensure();
       if (element) {
@@ -113,10 +120,27 @@ function createAvplayPlayer(): PlayerAdapter {
   }
   let status: PlaybackStatus = "idle";
   return {
-    async load(url) {
+    async load(url, drm) {
       status = "loading";
-      avplay.open(url);
+      // Tizen 6 avplay chokes on an upper-case .MPG extension (legacy CCL quirk).
+      const src = url.replace(/\.MPG(\?|$)/, ".mpg$1");
+      const state = avplay.getState?.();
+      if (state === "PLAYING" || state === "PAUSED") {
+        avplay.stop();
+        avplay.close();
+      }
+      avplay.open(src);
       avplay.setDisplayRect(0, 0, 1920, 1080);
+      // DRM handshake MUST run after open() and before prepare() (legacy CCL
+      // createVideo order). PROIDIOM ForensicData is a required non-empty field
+      // whose value is arbitrary.
+      if (drm === "PROIDIOM") {
+        avplay.setDrm("PROIDIOM", "Initialize", JSON.stringify({ type: "0", ForensicData: "xtv" }));
+      } else if (drm === "LYNK") {
+        // ponytail: LYNK needs the head-end key server (ip:port) in tenant config;
+        // wire when a LYNK title actually ships. PROIDIOM covers today's catalogue.
+        console.warn("avplay: LYNK DRM requested but LYNK server is not configured");
+      }
       avplay.prepare();
     },
     async play() {
@@ -149,7 +173,8 @@ function createAndroidPlayer(): PlayerAdapter {
   }
   let status: PlaybackStatus = "idle";
   return {
-    async load(url) {
+    async load(url, _drm) {
+      // ExoPlayer DRM is handled natively on the Kotlin side; drm hint unused here.
       status = "loading";
       bridge.load(url);
     },
