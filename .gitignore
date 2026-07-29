@@ -146,7 +146,7 @@ vite.config.ts.timestamp-*
 .nx/
 
 # Signing secrets — never commit cert paths/passwords. Use signing.example.json.
-signing/.signing.local.json
+signing/*
 
 # App public dirs are materialized per-build from the active tenant (generated)
 apps/*/public/

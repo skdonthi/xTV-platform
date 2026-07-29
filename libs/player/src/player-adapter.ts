@@ -68,6 +68,7 @@ function createHtml5Player(): PlayerAdapter {
       status = "loading";
       const element = ensure();
       if (element) {
+        element.style.display = "block";
         element.src = url;
         element.load();
       }
@@ -88,6 +89,8 @@ function createHtml5Player(): PlayerAdapter {
         video.pause();
         video.removeAttribute("src");
         video.load();
+        // Hide the element — otherwise its black fill covers the UI after stop.
+        video.style.display = "none";
       }
     },
     getStatus() {

@@ -89,6 +89,28 @@ export interface NavigationEngineOptions {
   keymapOverride?: KeymapConfig;
 }
 
+// Blits' input system maps keys → named events (its focused component's input
+// handlers). Feed it the platform base + tenant override so remote codes route
+// correctly per platform/cruiseline — reusing the same keymaps, not new code.
+// Blits indexes its keymap by `event.keyCode` (see application.js:
+// `keyMap[e.keyCode]`), so ONLY numeric keycodes are live — string names like
+// "ArrowUp" never match and are dropped. Merged over Blits' own defaults
+// (37/38/39/40/13), this adds the TV-specific codes (Tizen back 10009, webOS
+// back 461, color keys 403-406, media transport) as named Blits events.
+export function toBlitsKeymap(platform?: string, override?: KeymapConfig): Record<number, string> {
+  const base = BASE_KEYMAPS[platform ?? ""] ?? { actions: {} };
+  const merged = mergeKeymaps(base, override);
+  const map: Record<number, string> = {};
+  for (const [action, keys] of Object.entries(merged.actions)) {
+    for (const key of keys) {
+      if (typeof key === "number") {
+        map[key] = action;
+      }
+    }
+  }
+  return map;
+}
+
 export interface NavigationEngine {
   attach(root: Element): void;
   // Swap the cruiseline keymap override live (used on hot config apply). Keep a

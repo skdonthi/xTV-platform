@@ -3,6 +3,9 @@ import { createHeroBannerElement } from "./components/hero-banner";
 // Blits (canvas) components — the production render path used by the Blits app.
 export { default as HeroBanner } from "./components/hero-banner.component";
 export { default as HelloWorld } from "./components/hello-world.component";
+export { default as Itinerary } from "./components/itinerary.component";
+export { default as Movies } from "./components/movies.component";
+export { default as SideNav } from "./components/side-nav.component";
 
 // NOTE: the DOM WidgetDefinition/registry/layout path below is retained (still
 // consumed by @x-tv/layout + @x-tv/widget-registry types) but is NOT the render

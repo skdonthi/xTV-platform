@@ -6,6 +6,7 @@ import {
   readDeviceInfo,
 } from "@x-tv/diagnostics";
 import { createAudioController, createMutingController } from "@x-tv/muting";
+import { toBlitsKeymap } from "@x-tv/navigation";
 import { createRuntimeConfigLoader } from "@x-tv/runtime-config";
 import { createServiceGateway } from "@x-tv/service-gateway";
 import { appStatePlugin } from "@x-tv/storage";
@@ -85,6 +86,13 @@ export async function bootstrapTvPlatform(
     const bus = createWebsocketEventBus();
     bus.connect(url);
     controller.start(bus);
+    // Show a full-screen announcement overlay while muted (the muting signal
+    // carries title/message). Same bus the controller uses for audio.
+    bus.on("audio.mute", (payload) => {
+      console.info(`muting payload: ${JSON.stringify(payload)}`);
+      const m = payload as { muted?: boolean; title?: string; message?: string };
+      toggleAnnouncement(m.muted === true, m.title, m.message);
+    });
     console.info("xTV muting service connected", { url });
   }
 
@@ -98,6 +106,12 @@ export async function bootstrapTvPlatform(
         platform: runtimeConfig.platform.platform,
         locale: runtimeConfig.locale,
         theme: runtimeConfig.theme,
+        route: "home",
+        // Seeded so they're reactive; the content views set real counts after
+        // fetch, the root App reads them to clamp focus within each view.
+        itineraryCount: 0,
+        movieRailSizes: [] as number[],
+        movieCards: [] as { rail: number; col: number; url: string; title: string }[],
       });
 
       // Mount diagnostics FIRST so its on-screen console is available even if the
@@ -119,6 +133,10 @@ export async function bootstrapTvPlatform(
           multithreaded: false,
           defaultFont: runtimeConfig.fonts.default,
           fonts: runtimeConfig.fonts.families,
+          // Per-platform + per-tenant remote codes → Blits input events, reusing
+          // @x-tv/navigation's keymaps (not new remote code). Merged over Blits'
+          // arrow/enter defaults, so TV Back/color/media keys route correctly.
+          keymap: toBlitsKeymap(runtimeConfig.platform.platform, runtimeConfig.keymapOverride),
         } as Parameters<typeof Blits.Launch>[2]);
       } catch (error) {
         console.error("Blits.Launch failed", error);
@@ -136,6 +154,31 @@ export async function bootstrapTvPlatform(
 
   await runtime.start();
   return runtime;
+}
+
+// Full-screen announcement overlay shown while muted (DOM over the Blits canvas).
+function toggleAnnouncement(show: boolean, title?: string, message?: string): void {
+  const id = "xtv-announcement";
+  const existing = document.getElementById(id);
+  if (!show) {
+    existing?.remove();
+    return;
+  }
+  const el = existing ?? document.createElement("div");
+  el.id = id;
+  el.style.cssText =
+    "position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgb(3 12 22/92%);color:#fff;font-family:Arial,sans-serif;text-align:center;padding:8%";
+  el.textContent = "";
+  const t = document.createElement("div");
+  t.style.cssText = "font-size:64px;font-weight:700;margin-bottom:24px";
+  t.textContent = title ?? "Announcement";
+  const m = document.createElement("div");
+  m.style.cssText = "font-size:34px;color:#9db1c7";
+  m.textContent = message ?? "";
+  el.append(t, m);
+  if (!existing) {
+    document.body.appendChild(el);
+  }
 }
 
 function installBaseRuntimeStyles(): void {
