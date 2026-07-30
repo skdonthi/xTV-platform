@@ -1,0 +1,38 @@
+{
+  "carnival-day": {
+    "background": "#F2F6FB",
+    "surface": "#FFFFFF",
+    "text": "#003C71",
+    "textMuted": "#5B7A99",
+    "accent": "#E4002B",
+    "accentText": "#FFFFFF",
+    "focus": "#0072CE"
+  },
+  "carnival-sea": {
+    "background": "#003C71",
+    "surface": "#0A4E86",
+    "text": "#FFFFFF",
+    "textMuted": "#A9C5DD",
+    "accent": "#FFB81C",
+    "accentText": "#003C71",
+    "focus": "#FFB81C"
+  },
+  "carnival-sunset": {
+    "background": "#2A1330",
+    "surface": "#4A2438",
+    "text": "#FFF3E6",
+    "textMuted": "#E4A79C",
+    "accent": "#FF6B4A",
+    "accentText": "#2A1330",
+    "focus": "#FFB81C"
+  },
+  "carnival-night": {
+    "background": "#05101E",
+    "surface": "#0E2038",
+    "text": "#F5F8FB",
+    "textMuted": "#8FA6BD",
+    "accent": "#E4002B",
+    "accentText": "#FFFFFF",
+    "focus": "#4FA3E3"
+  }
+}

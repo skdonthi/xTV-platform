@@ -7,8 +7,10 @@ export function createXtvAliases(workspaceRoot: string, customer = "ccl"): Recor
   return {
     "@x-tv/tenant/config": resolve(workspaceRoot, `customers/${customer}/config.json`),
     "@x-tv/tenant/layout": resolve(workspaceRoot, `customers/${customer}/layouts/home.json`),
-    // Fonts are build-time brand assets (like release.json), NOT head-end config.
+    // Fonts + themes are build-time brand assets (like release.json), NOT head-end
+    // config. Per-tenant so a brand's palette never ships in another brand's build.
     "@x-tv/tenant/fonts": resolve(workspaceRoot, `customers/${customer}/fonts.json`),
+    "@x-tv/tenant/themes": resolve(workspaceRoot, `customers/${customer}/themes.json`),
     "@x-tv/core": resolve(workspaceRoot, "libs/core/src/index.ts"),
     "@x-tv/diagnostics": resolve(workspaceRoot, "libs/diagnostics/src/index.ts"),
     "@x-tv/layout": resolve(workspaceRoot, "libs/layout/src/index.ts"),

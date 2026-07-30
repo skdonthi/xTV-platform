@@ -168,10 +168,16 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
     video shows (`showVideoPlane`), restored on stop. LYNK DRM = follow-up (needs a
     key-server in config). Encryption flows movie payload → `PlayEntry.drm` →
     appState → App → `player.load(url, drm)`.
-13. **Fonts = build-time brand asset, NOT head-end config.** `customers/<line>/
-    fonts.json` via the `@x-tv/tenant/fonts` alias (same pattern as config/layout).
-    MSDF atlases for canvas text — CSS/`@font-face` never applies to the WebGL
-    canvas. Not runtime-overridable (like `release.json`).
+13. **Fonts + themes = build-time brand assets, NOT head-end config.** Each is a
+    per-tenant file via a `@x-tv/tenant/*` alias (same pattern as config/layout):
+    `customers/<line>/fonts.json` (`@x-tv/tenant/fonts`) — MSDF atlases for canvas
+    text (CSS/`@font-face` never applies to the WebGL canvas); and
+    `customers/<line>/themes.json` (`@x-tv/tenant/themes`) — the tenant's colour
+    token sets (id → colors). `libs/themes` is TYPE + `getTheme(id)` resolver only;
+    the tokens live in the tenant file, so a brand's palette never ships in another
+    brand's build (isolation, decision 4). The **active** theme id is selected by
+    `config.theme` (head-end-overridable → applies on reload); the token **values**
+    are baked at build. Neither is runtime-overridable (like `release.json`).
 14. **Old-TV transpile floor.** All three app `vite.config.ts` set `build.target`
     **and** `esbuild.target` `"chrome76"` (Tizen 6.5 = Chromium M76). Without it the
     bundle ships `??`/`?.`/`??=` untranspiled → M76 parse-error → **blank screen**.
@@ -183,9 +189,10 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
 ## How to…
 
 - **Add a cruiseline:** create `customers/<slug>/config.json` + `layouts/home.json`
-  + `fonts.json` (+ `assets/`, `i18n/`, `release.json`); add its head-end alias to
-  `tools/packaging/customer-slug.mjs` only. Build: `nx build samsung --customer=<slug>`.
-  (Figma design → `home.json` sections + widget props + theme tokens.)
+  + `fonts.json` + `themes.json` (+ `assets/`, `i18n/`, `release.json`); add its
+  head-end alias to `tools/packaging/customer-slug.mjs` only. Build:
+  `nx build samsung --customer=<slug>`. (Figma design → `home.json` sections +
+  widget props; Figma colour tokens → `themes.json`; `config.theme` picks the id.)
 - **Add a content widget (NEW type):** (1) write `libs/widgets/src/components/
   <name>.component.ts` (Blits, props for the superset the App passes: `active`,
   `focusIndex`/`railFocus`/`colFocus`, `url`, theme colors); (2) add it to

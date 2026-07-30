@@ -37,7 +37,8 @@
       "@x-tv/storage": ["libs/storage/src/index.ts"],
       "@x-tv/tenant/config": ["customers/ccl/config.json"],
       "@x-tv/tenant/layout": ["customers/ccl/layouts/home.json"],
-      "@x-tv/tenant/fonts": ["customers/ccl/fonts.json"]
+      "@x-tv/tenant/fonts": ["customers/ccl/fonts.json"],
+      "@x-tv/tenant/themes": ["customers/ccl/themes.json"]
     }
   },
   "include": ["apps/**/*.ts", "libs/**/*.ts", "tools/**/*.ts"],
