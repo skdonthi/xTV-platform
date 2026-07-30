@@ -31,6 +31,9 @@ export async function bootstrapTvPlatform(
   options: TvPlatformBootstrapOptions,
 ): Promise<TvPlatformRuntime> {
   installBaseRuntimeStyles();
+  // Boot loader so the screen isn't a scary dark blank while config loads + the
+  // one-time repaint reload happens (see selfReloadOnce below).
+  showBootLoader(true);
   const logBuffer = createLogBuffer();
   captureConsoleLogs(logBuffer);
 
@@ -162,11 +165,74 @@ export async function bootstrapTvPlatform(
         platform: runtimeConfig.platform.id,
         deviceId: deviceInfo.deviceId,
       });
+
+      // WORKAROUND: on Tizen the Blits WebGL canvas comes up BLANK on the cold-boot
+      // first launch (consistent across TVs; the app is running — ws/diagnostics
+      // work — but nothing paints). A reload reliably repaints (proven: the head-end
+      // `config.updated` reload made the app appear). So do exactly one self-reload
+      // per cold boot to force that repaint; the sessionStorage guard clears on a
+      // real app restart (power cycle), so every cold boot repaints once, but a
+      // reload never loops. Keep the boot loader visible until then.
+      if (selfReloadOnce()) {
+        console.info("xTV boot repaint: one-time reload (Tizen blank-first-frame)");
+        setTimeout(() => globalThis.location?.reload(), 1200);
+      } else {
+        setTimeout(() => showBootLoader(false), 800);
+      }
     },
   };
 
   await runtime.start();
   return runtime;
+}
+
+// One reload per COLD boot (Tizen blank-first-frame workaround). sessionStorage
+// survives location.reload() but clears on a real app restart, so each cold boot
+// repaints exactly once and a reload never loops. try/catch → false (never risk a
+// loop) if sessionStorage is unavailable.
+function selfReloadOnce(): boolean {
+  try {
+    const ss = globalThis.sessionStorage;
+    if (!ss || ss.getItem("xtv-boot-reloaded")) {
+      return false;
+    }
+    ss.setItem("xtv-boot-reloaded", "1");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Boot loader (DOM spinner) shown while config loads + the repaint reload happens,
+// so boot is never a scary dark blank.
+function showBootLoader(on: boolean): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const id = "xtv-boot-loader";
+  const existing = document.getElementById(id);
+  if (!on) {
+    existing?.remove();
+    return;
+  }
+  if (existing) {
+    return;
+  }
+  if (!document.getElementById("xtv-boot-loader-style")) {
+    const style = document.createElement("style");
+    style.id = "xtv-boot-loader-style";
+    style.textContent = "@keyframes xtv-boot-spin{to{transform:rotate(360deg)}}";
+    document.head.appendChild(style);
+  }
+  const el = document.createElement("div");
+  el.id = id;
+  el.style.cssText =
+    "position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;background:#07131f";
+  const spinner = document.createElement("div");
+  spinner.style.cssText =
+    "width:72px;height:72px;border:6px solid rgb(255 255 255/20%);border-top-color:#fff;border-radius:50%;animation:xtv-boot-spin 1s linear infinite";
+  el.appendChild(spinner);
+  document.body.appendChild(el);
 }
 
 // Full-screen announcement overlay shown while muted (DOM over the Blits canvas).

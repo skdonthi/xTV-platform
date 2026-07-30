@@ -221,6 +221,14 @@ Sign a build by exporting `XTV_CCL_*` env (see `docs/signing.md`) before `build`
   models — until their DUIDs are added, or a fleet distributor cert (LYNK/Pro:Centric
   partner, not DUID-locked) is used. **Rule out the cert before chasing a code bug**
   when "works on one TV, blank on others (same Tizen version)."
+- **Tizen cold-boot blank canvas → one-time self-reload (`libs/core/src/index.ts`).**
+  On Tizen the Blits WebGL canvas comes up **BLANK on the cold-boot first launch**
+  — consistent across TVs; the app is running (ws + diagnostics work) but nothing
+  paints. A **reload reliably repaints** (proven: a head-end `config.updated` reload
+  made the app appear). Workaround: a boot loader + `selfReloadOnce()` — one
+  `location.reload()` per cold boot, guarded by `sessionStorage` (survives the
+  reload, clears on a real app restart, so a reload never loops). Real root cause
+  (first-frame/WebGL init) is still open — this is the reliable stopgap.
 - **Blits `:attr` reactive vs plain `attr="$x"` — and the Tizen boot gotcha.**
   `:attr="$x"` compiles to a reactive effect (`generator.js`); plain `attr="$x"` is
   interpolated **once at mount**. Live-updating values (focus, scroll, `:alpha`,
